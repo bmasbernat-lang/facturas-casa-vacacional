@@ -223,6 +223,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 <header class="top">
   <h1><svg class="brand-logo" aria-hidden="true" width="30" height="30" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="9" fill="#1f5f6b"/><path d="M8 19.5 L20 9 L32 19.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18 V31 H28 V18" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><rect x="17.5" y="23" width="5" height="8" fill="#e8c9a0"/></svg>Facturas <span>· <span id="h-casa">Casa vacacional</span></span></h1>
   <nav class="tabs" role="tablist">
+    <button id="tab-res" role="tab" aria-selected="false" data-view="res">Reservas</button>
     <button id="tab-new" role="tab" aria-selected="true" data-view="new">Nueva factura</button>
     <button id="tab-history" role="tab" aria-selected="false" data-view="history">Historial</button>
     <button id="tab-cal" role="tab" aria-selected="false" data-view="cal">Calendario</button>
@@ -234,17 +235,49 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 
 <main>
   <!-- NUEVA FACTURA -->
-  <section id="view-new" class="split">
-    <form class="form" id="inv-form" autocomplete="off">
-      <p class="warn" id="lock-info" hidden></p>
+  <!-- RESERVAS (primero se importan aquí; la factura sale después desde una reserva) -->
+  <section id="view-res" hidden>
+    <div class="panel">
+      <h2>Reservas</h2>
       <div class="imp-box" id="imp-box">
         <div class="imp-top">
           <label class="btn primary" style="display:inline-flex;color:var(--panel)">📥 Importar reservas (CSV o Excel) <input type="file" id="imp-file" accept=".csv,.txt,.xlsx,.xls,text/csv" hidden></label>
           <button type="button" class="btn" id="imp-clear" hidden>Quitar lista</button>
         </div>
-        <p class="hint" id="imp-info">Elige el archivo que te manda la agencia y pulsa una reserva: la factura se rellena sola. Revisa los datos antes de guardar.</p>
+        <p class="hint" id="imp-info">Importa el archivo que te manda la agencia. Después pulsa una reserva para crear su factura.</p>
         <div class="imp-list" id="imp-list"></div>
       </div>
+      <details class="res-manual" style="margin-top:12px">
+        <summary><b>✏️ Añadir una reserva a mano</b> (por ejemplo, la que te llega por WhatsApp)</summary>
+        <form id="res-form" class="form" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px">
+          <label>Agencia
+            <select name="canal" required>
+              <option value="Fora Vila Rental">Fora Vila Rental</option>
+              <option value="Villafy Marias">Villafy Marias</option>
+              <option value="Otra">Otra</option>
+            </select>
+          </label>
+          <label>Nombre del cliente <input name="nombre" required></label>
+          <label>Entrada <input type="date" name="entrada" required></label>
+          <label>Salida <input type="date" name="salida" required></label>
+          <label>Adultos <input type="number" name="adultos" min="0" value="2"></label>
+          <label>Menores <input type="number" name="menores" min="0" value="0"></label>
+          <label>Importe total (IVA incluido) <input name="importe" inputmode="decimal" placeholder="0,00"></label>
+          <label>Nº de reserva <input name="reserva"></label>
+          <label>NIF / pasaporte <input name="nif"></label>
+          <label>Email <input type="email" name="email"></label>
+          <label style="grid-column:1/-1">Dirección <input name="dir"></label>
+          <div style="grid-column:1/-1"><button type="submit" class="btn primary">Guardar reserva</button></div>
+        </form>
+      </details>
+      <p class="hint">Las reservas se guardan aquí y en el Calendario. Las facturas se hacen después, pulsando una reserva.</p>
+    </div>
+  </section>
+
+  <!-- NUEVA FACTURA -->
+  <section id="view-new" class="split">
+    <form class="form" id="inv-form" autocomplete="off">
+      <p class="warn" id="lock-info" hidden></p>
       <fieldset id="r-box" hidden>
         <legend>Factura rectificativa</legend>
         <p class="hint" id="r-ref"></p>
@@ -350,7 +383,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <p class="warn" id="cal-warn" hidden></p>
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
-      <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Nueva factura».</p>
+      <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
     </div>
   </section>
 
@@ -951,7 +984,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const b = e.target.closest('.imp-item'); if (!b) return;
     const r = reservas.list[+b.dataset.i];
     if (impDone(r) && !b.dataset.confirm) { b.dataset.confirm = '1'; toast('Esta reserva ya tiene factura. Pulsa otra vez si quieres hacer otra.'); setTimeout(() => delete b.dataset.confirm, 4000); return; }
-    usarReserva(r);
+    show('new'); usarReserva(r);
   });
   function usarReserva(r) {
     const inv = blank(false), n = nights(r.entrada, r.salida);
@@ -1001,7 +1034,26 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
   };
-  $('imp-clear').onclick = () => { reservas = null; save(KEY_R, null); renderImp(); $('imp-info').textContent = 'Elige el archivo que te manda la agencia y pulsa una reserva: la factura se rellena sola. Revisa los datos antes de guardar.'; };
+  $('res-form').onsubmit = e => {
+    e.preventDefault();
+    const f = e.target, v = n => f.elements[n].value.trim();
+    const nombre = v('nombre'), entrada = v('entrada'), salida = v('salida');
+    if (!nombre || !entrada || !salida) { toast('Pon el nombre, la fecha de entrada y la de salida'); return; }
+    if (salida <= entrada) { toast('La salida tiene que ser después de la entrada'); return; }
+    const importe = parseFloat(v('importe').replace(',', '.'));
+    const x = {
+      reserva: v('reserva'), nombre, nif: v('nif'), email: v('email'), pais: '', dir: v('dir'),
+      entrada, salida, adultos: parseInt(v('adultos'), 10) || 0, menores: parseInt(v('menores'), 10) || 0,
+      importe: isNaN(importe) ? null : importe, precioNoche: null, limpieza: null, modo: 'total', canal: v('canal'), fuente: 'Manual'
+    };
+    const acumuladas = new Map(((reservas && reservas.list) || []).map(r => [impKey(r), r]));
+    acumuladas.set(impKey(x), x);
+    reservas = { file: (reservas && reservas.file) || 'Manual', list: [...acumuladas.values()], faltan: (reservas && reservas.faltan) || '' };
+    save(KEY_R, reservas);
+    renderImp(); f.reset(); f.elements.adultos.value = '2'; f.elements.menores.value = '0';
+    toast('Reserva guardada');
+  };
+  $('imp-clear').onclick = () => { reservas = null; save(KEY_R, null); renderImp(); $('imp-info').textContent = 'Importa el archivo que te manda la agencia. Después pulsa una reserva para crear su factura.'; };
 
   // ---------- eventos del formulario ----------
   $('inv-form').addEventListener('input', e => {
@@ -1528,7 +1580,8 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 
   // ---------- navegación ----------
   function show(v) {
-    ['new', 'history', 'cal', 'gastos', 'modelos', 'settings'].forEach(x => { $('view-' + x).hidden = x !== v; $('tab-' + x).setAttribute('aria-selected', x === v); });
+    ['res', 'new', 'history', 'cal', 'gastos', 'modelos', 'settings'].forEach(x => { $('view-' + x).hidden = x !== v; $('tab-' + x).setAttribute('aria-selected', x === v); });
+    if (v === 'res') renderImp();
     if (v === 'history') renderHistory();
     if (v === 'cal') renderCal();
     if (v === 'gastos') { if (!$('g-fecha').value) $('g-fecha').value = today(); renderGastos(); }
@@ -1554,8 +1607,16 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   if (isExample) setTimeout(() => toast('Datos de ejemplo: pon los tuyos en «Mis datos»'), 400);
   // ---------- calendario de reservas ----------
   let calMes = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); })();
-  const CAL_COL = ['#1f5f6b', '#b5651d', '#5b7f3a', '#7a4f8a', '#2f6aa3'];
-  const colorDe = t => { let h = 0; for (const c of String(t || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return CAL_COL[h % CAL_COL.length]; };
+  // Colores fijos por agencia: Fora Vila Rental en verde, Villafy Marias en azul; otras agencias, otros tonos
+  const CAL_COL = ['#b5651d', '#7a4f8a', '#5b7f3a', '#2f6aa3'];
+  const origenDe = r => r.canal || r.fuente || 'Sin origen';
+  const colorDe = t => {
+    const n = String(t || '').toLowerCase();
+    if (n.includes('fora') || n.includes('vila rental')) return '#2e7d32';
+    if (n.includes('villafy') || n.includes('marias') || n.includes('marías')) return '#1565c0';
+    let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return CAL_COL[h % CAL_COL.length];
+  };
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
   function renderCal() {
@@ -1576,7 +1637,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     $('cal-summary').innerHTML = `<div><span>Llegadas</span><b>${llegadas}</b></div><div><span>Noches ocupadas</span><b>${noches.length} de ${dias}</b></div><div><span>Ocupación</span><b>${Math.round(noches.length / dias * 100)} %</b></div>`;
     $('cal-warn').hidden = !solapadas;
     $('cal-warn').textContent = solapadas ? `⚠️ ${solapadas} noche${solapadas === 1 ? '' : 's'} con reservas solapadas este mes. Revisa las reservas marcadas en rojo.` : '';
-    const fuentes = [...new Set(lista.map(r => r.canal || r.fuente || 'Sin origen'))];
+    const fuentes = [...new Set(lista.map(origenDe))];
     $('cal-legend').innerHTML = fuentes.map(f => `<span><i style="background:${colorDe(f)}"></i>${esc(f)}</span>`).join('');
     const hoy = today();
     let html = '<div class="cal-dow">' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div>${d}</div>`).join('') + '</div>';
@@ -1595,7 +1656,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         const d = addDays(ws, i), enMes = d >= first && d <= ultimo, n = ocup[d] || 0;
         celdas += `<div class="cal-day${enMes ? '' : ' out'}${d === hoy ? ' hoy' : ''}${n > 1 ? ' ovr' : ''}" style="grid-column:${i + 1};grid-row:1"><b>${Number(d.slice(8))}</b></div>`;
       }
-      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${colorDe(sg.r.canal || sg.r.fuente)}" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
+      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${colorDe(origenDe(sg.r))}" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
       html += `<div class="cal-week" style="grid-template-rows:auto${' 26px'.repeat(Math.max(1, finales.length))}">${celdas}${barras}</div>`;
     }
     $('cal-grid').innerHTML = html;
