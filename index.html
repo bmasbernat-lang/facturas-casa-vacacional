@@ -254,6 +254,12 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       </div>
       <details class="res-manual" style="margin-top:12px">
         <summary><b>✏️ Añadir una reserva a mano</b> (por ejemplo, la que te llega por WhatsApp)</summary>
+        <div style="margin-top:10px">
+          <label>Pegar el parte de viajero (opcional)
+            <textarea id="res-pegar" rows="3" style="width:100%;box-sizing:border-box" placeholder="Pega aquí el texto del parte de viajero"></textarea>
+          </label>
+          <button type="button" class="btn" id="res-leer" style="margin-top:6px">Rellenar desde el parte</button>
+        </div>
         <form id="res-form" class="form" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px">
           <label>Agencia
             <select name="canal" required>
@@ -1042,6 +1048,29 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     reservas = { file: file.name, list: [...acumuladas.values()], faltan: faltan.join(', ') };
     save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
+  };
+  // Lee el texto del parte de viajero y rellena el formulario de Reservas
+  $('res-leer').onclick = () => {
+    const txt = $('res-pegar').value.replace(/\s+/g, ' ');
+    const etiquetas = ['Nombre del establecimiento', 'Código de establecimiento', 'Nº registro turístico', 'Dirección', 'Nº de reserva', 'Fecha de reserva', 'Fecha de entrada', 'Fecha de salida', 'Nº de viajeros', 'Nombre', 'Apellido', 'Fecha de nacimiento', 'Tipo de documento', 'Nº de documento'];
+    const re = new RegExp('(' + etiquetas.map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\s*:', 'g');
+    const campos = {};
+    const hits = [...txt.matchAll(re)];
+    hits.forEach((h, i) => {
+      const fin = i + 1 < hits.length ? hits[i + 1].index : txt.length;
+      campos[h[1]] = txt.slice(h.index + h[0].length, fin).trim().replace(/\s*(DATOS|En Can|Firma).*$/, '');
+    });
+    const iso = s => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(s || ''); return m ? `${m[3]}-${m[2]}-${m[1]}` : ''; };
+    const f = $('res-form');
+    if (!campos['Nombre'] && !campos['Nº de reserva']) { toast('No encuentro los datos del parte: revisa el texto pegado'); return; }
+    if (campos['Nº de reserva']) f.elements.reserva.value = campos['Nº de reserva'];
+    if (campos['Nombre'] || campos['Apellido']) f.elements.nombre.value = [campos['Nombre'], campos['Apellido']].filter(Boolean).join(' ');
+    if (campos['Fecha de entrada']) f.elements.entrada.value = iso(campos['Fecha de entrada']);
+    if (campos['Fecha de salida']) f.elements.salida.value = iso(campos['Fecha de salida']);
+    if (campos['Nº de viajeros']) f.elements.adultos.value = String(parseInt(campos['Nº de viajeros'], 10) || 0);
+    if (campos['Nº de documento']) f.elements.nif.value = campos['Nº de documento'];
+    if (campos['Dirección']) f.elements.dir.value = campos['Dirección'];
+    toast('Datos rellenados: revisa y pon el importe');
   };
   $('l-eye').onclick = () => {
     const p = $('l-pass'), oculta = p.type === 'password';
