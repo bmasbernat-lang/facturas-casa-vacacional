@@ -215,7 +215,12 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   <form id="login-form">
     <h2>Facturas · Acceso</h2>
     <label>Email <input id="l-email" type="email" required autocomplete="username"></label>
-    <label>Contraseña <input id="l-pass" type="password" required autocomplete="current-password"></label>
+    <label>Contraseña
+      <span style="position:relative;display:block">
+        <input id="l-pass" type="password" required autocomplete="current-password" style="width:100%;padding-right:44px;box-sizing:border-box">
+        <button type="button" id="l-eye" aria-label="Mostrar contraseña" title="Mostrar u ocultar contraseña" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;font-size:18px;padding:4px 8px">👁</button>
+      </span>
+    </label>
     <button class="btn primary" type="submit">Entrar</button>
     <p class="warn" id="l-err" hidden></p>
   </form>
@@ -1037,6 +1042,13 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     reservas = { file: file.name, list: [...acumuladas.values()], faltan: faltan.join(', ') };
     save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
+  };
+  $('l-eye').onclick = () => {
+    const p = $('l-pass'), oculta = p.type === 'password';
+    p.type = oculta ? 'text' : 'password';
+    $('l-eye').setAttribute('aria-label', oculta ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    $('l-eye').style.opacity = oculta ? '1' : '.5';
+    p.focus();
   };
   $('imp-file').onchange = impFile;
   $('imp-file2').onchange = impFile;
