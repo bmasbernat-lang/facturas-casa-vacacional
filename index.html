@@ -105,6 +105,27 @@ input.num { font-family: var(--mono); text-align: right; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 .warn { background: var(--accent-soft); border-left: 3px solid var(--danger); padding: 8px 10px; border-radius: 4px; font-size: 12px; }
 
+/* --- Calendario --- */
+.cal-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cal-head h2 { flex: 1; margin: 0; font-size: 18px; text-transform: capitalize; }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; font-size: 12px; color: var(--muted); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.cal-grid { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.cal-dow, .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cal-dow div { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 6px; text-align: center; background: var(--bg); border-bottom: 1px solid var(--line); }
+.cal-week { border-top: 1px solid var(--line); }
+.cal-week:first-of-type { border-top: 0; }
+.cal-day { min-height: 30px; padding: 4px 6px; font-size: 12px; border-right: 1px solid var(--line); }
+.cal-day:last-child { border-right: 0; }
+.cal-day b { font: 600 12px var(--mono); }
+.cal-day.out { color: var(--muted); opacity: .4; }
+.cal-day.hoy b { color: var(--accent); }
+.cal-day.ovr { background: color-mix(in srgb, var(--danger) 18%, transparent); }
+.cbar { margin: 2px 3px; border: 0; border-radius: 5px; color: #fff; font: 600 11px var(--sans); text-align: left; padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; min-width: 0; }
+.cbar.done { opacity: .45; }
+.cbar:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 /* --- Acceso --- */
 .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 100; padding: 16px; }
 .login form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 24px; display: grid; gap: 12px; width: min(360px, 92vw); }
@@ -204,6 +225,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   <nav class="tabs" role="tablist">
     <button id="tab-new" role="tab" aria-selected="true" data-view="new">Nueva factura</button>
     <button id="tab-history" role="tab" aria-selected="false" data-view="history">Historial</button>
+    <button id="tab-cal" role="tab" aria-selected="false" data-view="cal">Calendario</button>
     <button id="tab-gastos" role="tab" aria-selected="false" data-view="gastos">Gastos</button>
     <button id="tab-modelos" role="tab" aria-selected="false" data-view="modelos">Modelos 303 / 390</button>
     <button id="tab-settings" role="tab" aria-selected="false" data-view="settings">Mis datos</button>
@@ -313,6 +335,23 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     </form>
 
     <div class="paper-wrap"><article class="invoice" id="invoice"></article></div>
+  </section>
+
+  <!-- CALENDARIO -->
+  <section id="view-cal" hidden>
+    <div class="panel">
+      <div class="cal-head">
+        <button class="btn" id="cal-prev" type="button" aria-label="Mes anterior">‹</button>
+        <h2 id="cal-title"></h2>
+        <button class="btn" id="cal-next" type="button" aria-label="Mes siguiente">›</button>
+        <button class="btn" id="cal-hoy" type="button">Hoy</button>
+      </div>
+      <div class="summary" id="cal-summary"></div>
+      <p class="warn" id="cal-warn" hidden></p>
+      <div class="cal-legend" id="cal-legend"></div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Nueva factura».</p>
+    </div>
   </section>
 
   <!-- HISTORIAL -->
@@ -533,6 +572,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     if (!$('view-history').hidden) renderHistory();
     if (!$('view-gastos').hidden) renderGastos();
     if (!$('view-modelos').hidden) renderModelos();
+    if (!$('view-cal').hidden) renderCal();
   }
   async function afterLogin() {
     let remote;
@@ -911,6 +951,9 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const b = e.target.closest('.imp-item'); if (!b) return;
     const r = reservas.list[+b.dataset.i];
     if (impDone(r) && !b.dataset.confirm) { b.dataset.confirm = '1'; toast('Esta reserva ya tiene factura. Pulsa otra vez si quieres hacer otra.'); setTimeout(() => delete b.dataset.confirm, 4000); return; }
+    usarReserva(r);
+  });
+  function usarReserva(r) {
     const inv = blank(false), n = nights(r.entrada, r.salida);
     Object.assign(inv.cliente, { nombre: r.nombre, nif: r.nif, email: r.email, dir: r.dir });
     if (r.pais) inv.cliente.pais = r.pais;
@@ -927,7 +970,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const falta = [!r.nombre && 'nombre', !r.nif && 'NIF/pasaporte', !r.dir && 'dirección', !r.entrada && 'entrada', !r.salida && 'salida', r.importe == null && r.precioNoche == null && 'importe', r.adultos == null && 'adultos'].filter(Boolean);
     toast(falta.length ? `Rellenada. Falta: ${falta.join(', ')}` : 'Factura rellenada: revísala y guarda');
     $('inv-form').scrollIntoView({ behavior: 'smooth' });
-  });
+  }
   async function loadXlsx() {
     if (window.XLSX) return;
     await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
@@ -952,7 +995,9 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const etiquetas = { nombre: 'nombre del cliente', nif: 'NIF/pasaporte', dir: 'dirección', entrada: 'fecha de entrada', salida: 'fecha de salida', importe: 'importe' };
     const faltan = Object.entries(etiquetas).filter(([k]) => map[k] === undefined && !(k === 'salida' && map.noches !== undefined) && !(k === 'importe' && map.precioNoche !== undefined)).map(([, v]) => v);
     if (map.adultos === undefined && map.huespedes === undefined) faltan.push('número de adultos');
-    reservas = { file: file.name, list, faltan: faltan.join(', ') };
+    const acumuladas = new Map(((reservas && reservas.list) || []).map(x => [impKey(x), x]));
+    list.forEach(x => acumuladas.set(impKey(x), Object.assign({}, x, { fuente: file.name })));
+    reservas = { file: file.name, list: [...acumuladas.values()], faltan: faltan.join(', ') };
     save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
   };
@@ -1483,8 +1528,9 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 
   // ---------- navegación ----------
   function show(v) {
-    ['new', 'history', 'gastos', 'modelos', 'settings'].forEach(x => { $('view-' + x).hidden = x !== v; $('tab-' + x).setAttribute('aria-selected', x === v); });
+    ['new', 'history', 'cal', 'gastos', 'modelos', 'settings'].forEach(x => { $('view-' + x).hidden = x !== v; $('tab-' + x).setAttribute('aria-selected', x === v); });
     if (v === 'history') renderHistory();
+    if (v === 'cal') renderCal();
     if (v === 'gastos') { if (!$('g-fecha').value) $('g-fecha').value = today(); renderGastos(); }
     if (v === 'modelos') {
       // Al abrir por primera vez, propone el último trimestre que tiene facturas o gastos (o el actual)
@@ -1506,6 +1552,63 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   function showCasa() { const c = (settings.casa || '').trim() || 'Casa vacacional'; $('h-casa').textContent = c; document.title = `Facturas · ${c}`; }
   showCasa();
   if (isExample) setTimeout(() => toast('Datos de ejemplo: pon los tuyos en «Mis datos»'), 400);
+  // ---------- calendario de reservas ----------
+  let calMes = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); })();
+  const CAL_COL = ['#1f5f6b', '#b5651d', '#5b7f3a', '#7a4f8a', '#2f6aa3'];
+  const colorDe = t => { let h = 0; for (const c of String(t || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return CAL_COL[h % CAL_COL.length]; };
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
+  function renderCal() {
+    const y = calMes.getFullYear(), m = calMes.getMonth();
+    const first = iso(new Date(y, m, 1)), ultimo = iso(new Date(y, m + 1, 0));
+    const dias = new Date(y, m + 1, 0).getDate();
+    const lista = ((reservas && reservas.list) || []).filter(r => r.entrada && r.salida && r.salida > r.entrada);
+    // Noches ocupadas por día: la salida no cuenta como noche
+    const ocup = {};
+    lista.forEach(r => { for (let d = r.entrada; d < r.salida; d = addDays(d, 1)) ocup[d] = (ocup[d] || 0) + 1; });
+    const offset = (new Date(y, m, 1).getDay() + 6) % 7; // semana empieza en lunes
+    const inicio = addDays(first, -offset);
+    const semanas = Math.ceil((offset + dias) / 7);
+    const noches = Object.keys(ocup).filter(d => d >= first && d <= ultimo);
+    const solapadas = noches.filter(d => ocup[d] > 1).length;
+    const llegadas = lista.filter(r => r.entrada >= first && r.entrada <= ultimo).length;
+    $('cal-title').textContent = calMes.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    $('cal-summary').innerHTML = `<div><span>Llegadas</span><b>${llegadas}</b></div><div><span>Noches ocupadas</span><b>${noches.length} de ${dias}</b></div><div><span>Ocupación</span><b>${Math.round(noches.length / dias * 100)} %</b></div>`;
+    $('cal-warn').hidden = !solapadas;
+    $('cal-warn').textContent = solapadas ? `⚠️ ${solapadas} noche${solapadas === 1 ? '' : 's'} con reservas solapadas este mes. Revisa las reservas marcadas en rojo.` : '';
+    const fuentes = [...new Set(lista.map(r => r.canal || r.fuente || 'Sin origen'))];
+    $('cal-legend').innerHTML = fuentes.map(f => `<span><i style="background:${colorDe(f)}"></i>${esc(f)}</span>`).join('');
+    const hoy = today();
+    let html = '<div class="cal-dow">' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div>${d}</div>`).join('') + '</div>';
+    for (let w = 0; w < semanas; w++) {
+      const ws = addDays(inicio, w * 7), we = addDays(ws, 7);
+      const idx = d => Math.round((new Date(d + 'T12:00:00') - new Date(ws + 'T12:00:00')) / 864e5);
+      const segs = lista.filter(r => r.entrada < we && r.salida > ws).map(r => {
+        const a = r.entrada > ws ? r.entrada : ws, b = r.salida < we ? r.salida : we;
+        return { r, c1: idx(a) + 1, c2: idx(b) + 1, comienza: r.entrada >= ws };
+      }).sort((x, z) => x.c1 - z.c1 || z.c2 - x.c2);
+      // Carriles: una reserva por carril, para que los solapamientos se vean
+      const finales = [];
+      segs.forEach(sg => { let L = finales.findIndex(f => f <= sg.c1); if (L < 0) { L = finales.length; finales.push(0); } finales[L] = sg.c2; sg.lane = L; });
+      let celdas = '';
+      for (let i = 0; i < 7; i++) {
+        const d = addDays(ws, i), enMes = d >= first && d <= ultimo, n = ocup[d] || 0;
+        celdas += `<div class="cal-day${enMes ? '' : ' out'}${d === hoy ? ' hoy' : ''}${n > 1 ? ' ovr' : ''}" style="grid-column:${i + 1};grid-row:1"><b>${Number(d.slice(8))}</b></div>`;
+      }
+      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${colorDe(sg.r.canal || sg.r.fuente)}" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
+      html += `<div class="cal-week" style="grid-template-rows:auto${' 26px'.repeat(Math.max(1, finales.length))}">${celdas}${barras}</div>`;
+    }
+    $('cal-grid').innerHTML = html;
+  }
+  $('cal-prev').onclick = () => { calMes = new Date(calMes.getFullYear(), calMes.getMonth() - 1, 1); renderCal(); };
+  $('cal-next').onclick = () => { calMes = new Date(calMes.getFullYear(), calMes.getMonth() + 1, 1); renderCal(); };
+  $('cal-hoy').onclick = () => { const t = new Date(); calMes = new Date(t.getFullYear(), t.getMonth(), 1); renderCal(); };
+  $('cal-grid').addEventListener('click', e => {
+    const b = e.target.closest('.cbar'); if (!b) return;
+    const r = ((reservas && reservas.list) || []).find(x => impKey(x) === b.dataset.k); if (!r) return;
+    if (impDone(r)) { toast('Esta reserva ya tiene factura'); return; }
+    show('new'); usarReserva(r);
+  });
   cloudInit();
   window.__calc = calc;
 })();
