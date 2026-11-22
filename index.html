@@ -278,6 +278,10 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   <section id="view-new" class="split">
     <form class="form" id="inv-form" autocomplete="off">
       <p class="warn" id="lock-info" hidden></p>
+      <div class="imp-top" style="margin-bottom:8px">
+        <label class="btn primary" style="display:inline-flex;color:var(--panel)">📥 Importar reservas (CSV o Excel) <input type="file" id="imp-file2" accept=".csv,.txt,.xlsx,.xls,text/csv" hidden></label>
+        <span class="hint" style="margin:0">Se guardan en Reservas; pulsa una allí para rellenar esta factura.</span>
+      </div>
       <fieldset id="r-box" hidden>
         <legend>Factura rectificativa</legend>
         <p class="hint" id="r-ref"></p>
@@ -1008,7 +1012,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     if (window.XLSX) return;
     await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
   }
-  $('imp-file').onchange = async e => {
+  const impFile = async e => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;
     let rows;
     try {
@@ -1034,6 +1038,8 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
   };
+  $('imp-file').onchange = impFile;
+  $('imp-file2').onchange = impFile;
   $('res-form').onsubmit = e => {
     e.preventDefault();
     const f = e.target, v = n => f.elements[n].value.trim();
