@@ -105,6 +105,11 @@ input.num { font-family: var(--mono); text-align: right; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 .warn { background: var(--accent-soft); border-left: 3px solid var(--danger); padding: 8px 10px; border-radius: 4px; font-size: 12px; }
 
+/* --- Acceso --- */
+.login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 100; padding: 16px; }
+.login form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 24px; display: grid; gap: 12px; width: min(360px, 92vw); }
+.login h2 { margin: 0; font-size: 18px; }
+
 /* --- Factura (siempre papel blanco) --- */
 .paper-wrap { overflow-x: auto; min-width: 0; }
 .invoice {
@@ -185,6 +190,15 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 </style>
 </head>
 <body>
+<div class="login" id="login" hidden>
+  <form id="login-form">
+    <h2>Facturas · Acceso</h2>
+    <label>Email <input id="l-email" type="email" required autocomplete="username"></label>
+    <label>Contraseña <input id="l-pass" type="password" required autocomplete="current-password"></label>
+    <button class="btn primary" type="submit">Entrar</button>
+    <p class="warn" id="l-err" hidden></p>
+  </form>
+</div>
 <header class="top">
   <h1><svg class="brand-logo" aria-hidden="true" width="30" height="30" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="9" fill="#1f5f6b"/><path d="M8 19.5 L20 9 L32 19.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18 V31 H28 V18" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><rect x="17.5" y="23" width="5" height="8" fill="#e8c9a0"/></svg>Facturas <span>· <span id="h-casa">Casa vacacional</span></span></h1>
   <nav class="tabs" role="tablist">
@@ -439,6 +453,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <fieldset>
         <legend>Carpeta de facturas</legend>
         <p class="hint" id="d-name"></p>
+        <div style="margin-top:8px"><button type="button" class="btn" id="logout">Cerrar sesión</button></div>
         <div><button type="button" class="btn" id="d-pick">Elegir carpeta…</button></div>
       </fieldset>
       <fieldset>
@@ -461,6 +476,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 <div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
   const IVA = 0.10;
@@ -469,7 +485,88 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 
   // ---------- almacenamiento ----------
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
-  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+  // ---------- nube (Supabase): el navegador guarda una copia y la nube es la fuente de verdad ----------
+  const sb = supabase.createClient('https://djwhdlmzzclwcyfdvqbq.supabase.co', 'sb_publishable_zo6WjiYU0iO2d3lS_BitUA_MatWRd82');
+  let cloudReady = false, cloudUid = null, cloudQueue = Promise.resolve();
+  const localSave = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+  function cloudPush(k, v) {
+    if (!cloudReady) return;
+    cloudQueue = cloudQueue.then(() => doPush(k, v)).catch(err => { console.error(err); toast('No se pudo guardar en la nube. Revisa la conexión'); });
+  }
+  const save = (k, v) => { const ok = localSave(k, v); cloudPush(k, v); return ok; };
+  async function doPush(k, v) {
+    if (k === KEY_S) { const { error } = await sb.from('settings').upsert({ user_id: cloudUid, data: v }); if (error) throw error; return; }
+    if (k === KEY_R) {
+      const q = v ? sb.from('reservas').upsert({ user_id: cloudUid, id: 'actual', data: v }) : sb.from('reservas').delete().eq('id', 'actual');
+      const { error } = await q; if (error) throw error; return;
+    }
+    const table = k === KEY_I ? 'facturas' : k === KEY_G ? 'gastos' : null;
+    if (!table) return;
+    const items = Array.isArray(v) ? v : [];
+    if (items.length) {
+      const { error } = await sb.from(table).upsert(items.map(x => ({ user_id: cloudUid, id: String(x.id), data: x })));
+      if (error) throw error;
+    }
+    // Lo que haya en la nube y ya no esté aquí se borra (p. ej. el borrado de una factura de prueba)
+    const { data: remote, error: e2 } = await sb.from(table).select('id'); if (e2) throw e2;
+    const keep = new Set(items.map(x => String(x.id)));
+    const drop = remote.map(r => r.id).filter(id => !keep.has(id));
+    if (drop.length) { const { error } = await sb.from(table).delete().in('id', drop); if (error) throw error; }
+  }
+  async function cloudPull() {
+    const [s, f, g, r] = await Promise.all([
+      sb.from('settings').select('data').maybeSingle(),
+      sb.from('facturas').select('data'),
+      sb.from('gastos').select('data'),
+      sb.from('reservas').select('data').eq('id', 'actual').maybeSingle()
+    ]);
+    const err = s.error || f.error || g.error || r.error; if (err) throw err;
+    return {
+      settings: s.data ? s.data.data : null,
+      invoices: f.data.map(x => x.data),
+      gastos: g.data.map(x => x.data),
+      reservas: r.data ? r.data.data : null
+    };
+  }
+  function refreshUI() {
+    showCasa(); fillSettings(); renderImp(); fillForm(blank(false));
+    if (!$('view-history').hidden) renderHistory();
+    if (!$('view-gastos').hidden) renderGastos();
+    if (!$('view-modelos').hidden) renderModelos();
+  }
+  async function afterLogin() {
+    let remote;
+    try { remote = await cloudPull(); }
+    catch (err) { console.error(err); toast('No se pudo conectar con la nube. Los cambios de este navegador no se guardarán allí'); return; }
+    const hasRemote = !!(remote.settings || remote.invoices.length || remote.gastos.length || remote.reservas);
+    if (hasRemote) {
+      // Si aquí hay facturas que la nube no tiene, se guarda una copia antes de sustituir los datos locales
+      const remoteIds = new Set([...remote.invoices, ...remote.gastos].map(x => String(x.id)));
+      if ([...invoices, ...gastos].some(x => !remoteIds.has(String(x.id)))) downloadBlob(`copia-antes-de-sincronizar-${today()}.json`, backupBlob());
+      if (remote.settings) settings = Object.assign({}, defaults, remote.settings);
+      invoices = remote.invoices; gastos = remote.gastos; reservas = remote.reservas;
+      localSave(KEY_S, settings); localSave(KEY_I, invoices); localSave(KEY_G, gastos); localSave(KEY_R, reservas);
+      cloudReady = true;
+    } else {
+      // Primera vez en la nube: se sube lo que hay en este navegador
+      cloudReady = true;
+      cloudPush(KEY_S, settings); cloudPush(KEY_I, invoices); cloudPush(KEY_G, gastos); cloudPush(KEY_R, reservas);
+    }
+    refreshUI();
+  }
+  async function cloudInit() {
+    const { data } = await sb.auth.getSession();
+    if (data.session) { cloudUid = data.session.user.id; await afterLogin(); }
+    else $('login').hidden = false;
+  }
+  $('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const { data, error } = await sb.auth.signInWithPassword({ email: $('l-email').value.trim(), password: $('l-pass').value });
+    if (error || !data.user) { $('l-err').hidden = false; $('l-err').textContent = 'Email o contraseña incorrectos'; return; }
+    $('l-err').hidden = true; $('login').hidden = true;
+    cloudUid = data.user.id; await afterLogin();
+  });
+  $('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
   const defaults = {
     nombre: 'Titular de EJEMPLO', nif: '00000000T', tel: '+34 600 000 000', email: 'reservas@example.com',
@@ -856,10 +953,10 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const faltan = Object.entries(etiquetas).filter(([k]) => map[k] === undefined && !(k === 'salida' && map.noches !== undefined) && !(k === 'importe' && map.precioNoche !== undefined)).map(([, v]) => v);
     if (map.adultos === undefined && map.huespedes === undefined) faltan.push('número de adultos');
     reservas = { file: file.name, list, faltan: faltan.join(', ') };
-    try { localStorage.setItem(KEY_R, JSON.stringify(reservas)); } catch {}
+    save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
   };
-  $('imp-clear').onclick = () => { reservas = null; try { localStorage.removeItem(KEY_R); } catch {} renderImp(); $('imp-info').textContent = 'Elige el archivo que te manda la agencia y pulsa una reserva: la factura se rellena sola. Revisa los datos antes de guardar.'; };
+  $('imp-clear').onclick = () => { reservas = null; save(KEY_R, null); renderImp(); $('imp-info').textContent = 'Elige el archivo que te manda la agencia y pulsa una reserva: la factura se rellena sola. Revisa los datos antes de guardar.'; };
 
   // ---------- eventos del formulario ----------
   $('inv-form').addEventListener('input', e => {
@@ -1409,6 +1506,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   function showCasa() { const c = (settings.casa || '').trim() || 'Casa vacacional'; $('h-casa').textContent = c; document.title = `Facturas · ${c}`; }
   showCasa();
   if (isExample) setTimeout(() => toast('Datos de ejemplo: pon los tuyos en «Mis datos»'), 400);
+  cloudInit();
   window.__calc = calc;
 })();
 </script>
