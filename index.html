@@ -735,7 +735,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <div class="parties">
         <div class="party"><h3>Emisor</h3>
           <p class="name">${esc(s.nombre) || '—'}</p><p>NIF ${esc(s.nif) || '—'}</p><p>${esc(s.dir)}</p>
-          <p>${[s.tel, s.email].filter(Boolean).map(esc).join(' · ')}</p></div>
+          ${[s.tel, s.email].filter(Boolean).map(v => '<p>' + esc(v) + '</p>').join('')}</div>
         <div class="party"><h3>Cliente</h3>
           <p class="name">${esc(inv.cliente.nombre) || '—'}</p><p>${inv.cliente.nif ? 'NIF/Pasaporte ' + esc(inv.cliente.nif) : ''}</p>
           <p>${esc(inv.cliente.dir)}</p><p>${esc(inv.cliente.pais)}</p>${inv.cliente.email ? '<p>' + esc(inv.cliente.email) + '</p>' : ''}</div>
