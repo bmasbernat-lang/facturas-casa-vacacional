@@ -1,0 +1,1414 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Facturas Casa Vacacional</title>
+<meta name="theme-color" content="#1f5f6b">
+<meta name="application-name" content="Facturas">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Facturas">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOSIgZmlsbD0iIzFmNWY2YiIvPjxwYXRoIGQ9Ik04IDE5LjUgTDIwIDkgTDMyIDE5LjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTIgMTggVjMxIEgyOCBWMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHJlY3QgeD0iMTcuNSIgeT0iMjMiIHdpZHRoPSI1IiBoZWlnaHQ9IjgiIGZpbGw9IiNlOGM5YTAiLz48L3N2Zz4=">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: formulario a la izquierda, factura A4 en vivo a la derecha; al imprimir solo sale la factura */
+:root {
+  --bg: #eef1f0;
+  --panel: #ffffff;
+  --line: #d5dcda;
+  --fg: #1c2624;
+  --muted: #5d6d69;
+  --accent: #1f5f6b;
+  --accent-soft: #dceaec;
+  --danger: #a3372b;
+  --ok: #2e7a4b;
+  --sans: "Instrument Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a19; --panel: #1d2523; --line: #33403d; --fg: #e4ebe9; --muted: #98a8a4;
+    --accent: #6fb3bf; --accent-soft: #23393d; --danger: #e07a6d; --ok: #6cc28f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a19; --panel: #1d2523; --line: #33403d; --fg: #e4ebe9; --muted: #98a8a4;
+  --accent: #6fb3bf; --accent-soft: #23393d; --danger: #e07a6d; --ok: #6cc28f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.45 var(--sans); }
+header.top {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--panel);
+  position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+header.top h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+header.top h1 span { color: var(--muted); font-weight: 500; }
+header.top h1 { display: flex; align-items: center; gap: 10px; }
+.brand-logo { flex: none; display: block; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button { background: none; border: 1px solid transparent; color: var(--muted); padding: 7px 12px; border-radius: 6px; font: 600 13px var(--sans); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+main { padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.split { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 24px; align-items: start; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 980px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.form { display: grid; gap: 14px; }
+fieldset { margin: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 12px 14px 14px; display: grid; gap: 10px; min-width: 0; }
+legend { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); padding: 0 6px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+#g-form { grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 10px 16px; }
+label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 500; min-width: 0; }
+/* En las filas, la casilla queda siempre abajo aunque el título ocupe dos líneas */
+.row > label, #g-form > label { grid-template-rows: 1fr auto; align-content: end; }
+input, select, textarea {
+  width: 100%; font: 14px var(--sans); color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 9px; min-width: 0; box-sizing: border-box;
+}
+/* Todas las casillas de una línea con la misma altura, sea texto, número, fecha o desplegable */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select { height: 36px; line-height: 20px; }
+input[type="date"] { font-size: 13px; padding: 7px 6px; -webkit-appearance: none; appearance: none; display: block; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+@media (max-width: 600px) { .row { gap: 10px 18px; } }
+textarea { resize: vertical; min-height: 56px; }
+input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input.num { font-family: var(--mono); text-align: right; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg); }
+.check input { width: auto; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.imp-box { border: 1px dashed var(--accent); border-radius: 8px; padding: 12px 14px; display: grid; gap: 8px; background: var(--panel); }
+.imp-box .imp-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.imp-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.imp-item { text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 6px; padding: 8px 10px; font: 13px var(--sans); cursor: pointer; display: grid; gap: 2px; }
+.imp-item:hover { border-color: var(--accent); }
+.imp-item small { color: var(--muted); font-size: 12px; }
+.imp-item.done { opacity: .55; }
+.imp-item .tag { display: inline-block; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+.lines { display: grid; gap: 8px; }
+.line { display: grid; grid-template-columns: minmax(0, 1fr) 110px 32px; gap: 8px; align-items: center; }
+.icon-btn { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 6px; height: 34px; cursor: pointer; font-size: 16px; }
+.icon-btn:hover { color: var(--danger); border-color: var(--danger); }
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 6px; padding: 8px 14px; font: 600 13px var(--sans); cursor: pointer; text-decoration: none; display: inline-block; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.btn.primary:hover { filter: brightness(1.1); color: var(--panel); }
+.btn.danger { color: var(--danger); }
+.btn.danger:hover { border-color: var(--danger); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; position: sticky; bottom: 0; padding: 12px 0; background: var(--bg); }
+.toast { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 14px; border-radius: 6px; font-weight: 600; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; z-index: 20; }
+.toast.show { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+.warn { background: var(--accent-soft); border-left: 3px solid var(--danger); padding: 8px 10px; border-radius: 4px; font-size: 12px; }
+
+/* --- Factura (siempre papel blanco) --- */
+.paper-wrap { overflow-x: auto; min-width: 0; }
+.invoice {
+  --ink: #1b2422; --ink-muted: #5f6d6a; --rule: #cfd8d6; --tint: #eef4f4; --brand: #1f5f6b;
+  background: #fff; color: var(--ink); width: 210mm; min-height: 297mm; margin: 0 auto; padding: 18mm 16mm;
+  box-shadow: 0 2px 18px rgba(0,0,0,.12); font: 10pt/1.45 var(--sans); display: flex; flex-direction: column; gap: 9mm;
+}
+.inv-head { display: flex; justify-content: space-between; gap: 10mm; align-items: flex-start; }
+.inv-logo { display: block; max-height: 24mm; max-width: 70mm; object-fit: contain; margin-bottom: 4mm; }
+.logo-box { min-height: 64px; display: flex; align-items: center; padding: 8px; border: 1px dashed var(--line); border-radius: 6px; background: #fff; }
+.logo-box img { max-height: 80px; max-width: 100%; }
+.inv-head h2 { margin: 0; font-size: 24pt; letter-spacing: -0.02em; color: var(--brand); font-weight: 700; }
+.inv-meta { text-align: right; font-size: 9.5pt; display: grid; gap: 1mm; }
+.inv-meta b { font-family: var(--mono); font-weight: 500; }
+.parties { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; }
+.party h3, .stay h3 { margin: 0 0 2mm; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); font-weight: 700; }
+.party p { margin: 0; white-space: pre-line; }
+.party .name { font-weight: 700; font-size: 11pt; }
+.stay { background: var(--tint); border-radius: 2mm; padding: 4mm 5mm; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+.stay div span { display: block; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-muted); }
+.stay div b { font-family: var(--mono); font-weight: 500; font-size: 10pt; }
+table.items { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.items th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-muted); border-bottom: 1.5px solid var(--ink); padding: 2mm 2mm; }
+table.items td { padding: 2.5mm 2mm; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.items .r { text-align: right; font-family: var(--mono); white-space: nowrap; }
+.totals { margin-left: auto; width: 90mm; display: grid; gap: 1.5mm; font-variant-numeric: tabular-nums; }
+.totals div { display: flex; justify-content: space-between; gap: 4mm; }
+.totals div span:last-child { font-family: var(--mono); }
+.totals .grand { border-top: 1.5px solid var(--ink); padding-top: 2mm; margin-top: 1mm; font-size: 13pt; font-weight: 700; color: var(--brand); }
+.totals .sub { color: var(--ink-muted); font-size: 9pt; }
+.inv-foot { margin-top: auto; font-size: 8.5pt; color: var(--ink-muted); display: grid; gap: 2mm; border-top: 1px solid var(--rule); padding-top: 4mm; }
+.inv-foot p { margin: 0; white-space: pre-line; }
+
+/* --- Historial --- */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; max-width: 1400px; margin: 0 auto; display: grid; gap: 14px; }
+.panel h2 { margin: 0; font-size: 16px; }
+.summary { display: flex; flex-wrap: wrap; gap: 24px; }
+.summary div span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.summary div b { font: 600 18px var(--mono); }
+.table-wrap { overflow-x: auto; }
+table.hist { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 760px; }
+table.hist th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); padding: 8px; }
+table.hist td { border-bottom: 1px solid var(--line); padding: 8px; }
+table.hist td.r, table.hist th.r { text-align: right; font-family: var(--mono); }
+table.hist td.acts { white-space: nowrap; text-align: right; }
+table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
+.empty { color: var(--muted); padding: 20px 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.filters label { width: 140px; }
+.send-box { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 12px; padding: 12px; border: 1px dashed #b9c9c7; border-radius: 10px; }
+.send-box .send-mail { flex: 1 1 240px; }
+.send-help { flex-basis: 100%; margin: 0; font-size: 13px; color: #5b6b69; }
+.send-note { flex-basis: 100%; margin: 0; font-size: 14px; background: #fff6e5; border-radius: 8px; padding: 8px 10px; }
+
+.invoice.pdf-mode { box-shadow: none; margin: 0; min-height: 0; height: 296mm; overflow: hidden; }
+.modelo { display: grid; gap: 16px; }
+.modelo section { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; }
+.modelo h3 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.casilla { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.casilla:last-child { border-bottom: 0; }
+.casilla .n { font: 600 12px var(--mono); background: var(--accent-soft); color: var(--accent); border-radius: 4px; text-align: center; padding: 3px 0; }
+.casilla .n.blank { background: none; }
+.casilla button { font: 600 14px var(--mono); background: none; border: 1px solid transparent; color: var(--fg); border-radius: 4px; padding: 3px 8px; cursor: copy; }
+.casilla button:hover { border-color: var(--accent); }
+.casilla.total { font-weight: 700; }
+.aeat-box { border: 1px dashed var(--accent); border-radius: 8px; padding: 12px 14px; display: grid; gap: 10px; margin: 12px 0; }
+.aeat-box h3 { margin: 0; font-size: 14px; }
+.result { font-size: 16px; font-weight: 700; padding: 10px 12px; border-radius: 6px; background: var(--accent-soft); }
+@media print {
+  @page { size: A4; margin: 0; }
+  body { background: #fff; }
+  header.top, .form, .actions, .toast, #view-history, #view-settings, #view-gastos, #view-modelos { display: none !important; }
+  main { padding: 0; }
+  .split { display: block; }
+  .invoice { box-shadow: none; margin: 0; width: 210mm; min-height: 297mm; }
+  .paper-wrap { overflow: visible; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1><svg class="brand-logo" aria-hidden="true" width="30" height="30" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="9" fill="#1f5f6b"/><path d="M8 19.5 L20 9 L32 19.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18 V31 H28 V18" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><rect x="17.5" y="23" width="5" height="8" fill="#e8c9a0"/></svg>Facturas <span>· <span id="h-casa">Casa vacacional</span></span></h1>
+  <nav class="tabs" role="tablist">
+    <button id="tab-new" role="tab" aria-selected="true" data-view="new">Nueva factura</button>
+    <button id="tab-history" role="tab" aria-selected="false" data-view="history">Historial</button>
+    <button id="tab-gastos" role="tab" aria-selected="false" data-view="gastos">Gastos</button>
+    <button id="tab-modelos" role="tab" aria-selected="false" data-view="modelos">Modelos 303 / 390</button>
+    <button id="tab-settings" role="tab" aria-selected="false" data-view="settings">Mis datos</button>
+  </nav>
+</header>
+
+<main>
+  <!-- NUEVA FACTURA -->
+  <section id="view-new" class="split">
+    <form class="form" id="inv-form" autocomplete="off">
+      <p class="warn" id="lock-info" hidden></p>
+      <div class="imp-box" id="imp-box">
+        <div class="imp-top">
+          <label class="btn primary" style="display:inline-flex;color:var(--panel)">📥 Importar reservas (CSV o Excel) <input type="file" id="imp-file" accept=".csv,.txt,.xlsx,.xls,text/csv" hidden></label>
+          <button type="button" class="btn" id="imp-clear" hidden>Quitar lista</button>
+        </div>
+        <p class="hint" id="imp-info">Elige el archivo que te manda la agencia y pulsa una reserva: la factura se rellena sola. Revisa los datos antes de guardar.</p>
+        <div class="imp-list" id="imp-list"></div>
+      </div>
+      <fieldset id="r-box" hidden>
+        <legend>Factura rectificativa</legend>
+        <p class="hint" id="r-ref"></p>
+        <label>Motivo de la rectificación <textarea id="r-motivo" rows="2" placeholder="Ej.: error en el número de noches; anulación por cancelación de la reserva"></textarea></label>
+        <p class="hint">Escribe abajo los datos y los importes <b>correctos</b>. Esta factura recoge solo la diferencia con la original. Para anularla entera, quita todos los conceptos, borra el precio por noche y desmarca el impuesto turístico.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Factura</legend>
+        <div class="row">
+          <label>Serie <input id="f-serie" maxlength="12"></label>
+          <label>Número <input id="f-numero" class="num" inputmode="numeric"></label>
+          <label>Fecha de expedición <input id="f-fecha" type="date"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cliente</legend>
+        <label>Nombre y apellidos / Razón social <input id="c-nombre"></label>
+        <div class="row">
+          <label>NIF / NIE / Pasaporte <input id="c-nif"></label>
+          <label>País <input id="c-pais" value="España"></label>
+        </div>
+        <label>Dirección <textarea id="c-dir" rows="2"></textarea></label>
+        <label>Email (opcional) <input id="c-email" type="email"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Estancia</legend>
+        <div class="row">
+          <label>Entrada <input id="e-in" type="date"></label>
+          <label>Salida <input id="e-out" type="date"></label>
+        </div>
+        <div class="row">
+          <label>Huéspedes adultos (16+) <input id="e-adultos" class="num" type="number" min="0" value="2"></label>
+          <label>Menores de 16 <input id="e-menores" class="num" type="number" min="0" value="0"></label>
+        </div>
+        <p class="hint" id="e-noches">—</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Conceptos (IVA 10 %)</legend>
+        <label>Los importes que escribo son
+          <select id="p-modo">
+            <option value="total">Precio final, IVA incluido</option>
+            <option value="base">Base imponible, sin IVA</option>
+          </select>
+        </label>
+        <label>Precio por noche <input id="p-noche" class="num" inputmode="decimal" placeholder="0,00"></label>
+        <p class="hint" id="p-auto">Escribe el precio por noche y se multiplica solo por las noches de la estancia.</p>
+        <p class="hint" style="margin-top:4px">Otros conceptos (limpieza, cuna, mascota…):</p>
+        <div class="lines" id="lines"></div>
+        <div><button type="button" class="btn" id="add-line">+ Añadir concepto</button></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Impuesto turístico</legend>
+        <label class="check"><input type="checkbox" id="t-on"> Incluir impuesto de estancias turísticas</label>
+        <div class="row" id="t-fields">
+          <label>€ por persona y noche <input id="t-tarifa" class="num" type="number" step="0.01" min="0"></label>
+          <label>Noches que computan <input id="t-noches" class="num" type="number" min="0"></label>
+        </div>
+        <p class="hint">Se suma fuera de la base imponible y no lleva IVA. Lo pagan los adultos (16+). Revisa la tarifa vigente de tu municipio y temporada; en Baleares, por ejemplo, a partir del 9.º día y en temporada baja se aplica una reducción.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pago y notas</legend>
+        <label>Forma de pago
+          <select id="n-pago">
+            <option>Transferencia bancaria</option>
+            <option>Tarjeta</option>
+            <option>Efectivo</option>
+            <option>Bizum</option>
+            <option>Plataforma (Airbnb, Booking…)</option>
+          </select>
+        </label>
+        <label>Notas en la factura <textarea id="n-notas" rows="2"></textarea></label>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="btn primary" id="save">Guardar factura</button>
+        <button type="button" class="btn" id="print">Imprimir / PDF</button>
+        <button type="button" class="btn" id="pdf-again" hidden>Guardar PDF otra vez</button>
+        <button type="button" class="btn" id="rect-btn" hidden>Hacer rectificativa</button>
+        <button type="button" class="btn" id="reset">Nueva en blanco</button>
+      </div>
+      <p class="hint" id="dir-info"></p>
+      <p class="warn" id="warn-emisor" hidden>Faltan tus datos de emisor (nombre, NIF o dirección). Rellénalos en «Mis datos» para que la factura sea válida.</p>
+    </form>
+
+    <div class="paper-wrap"><article class="invoice" id="invoice"></article></div>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section id="view-history" hidden>
+    <div class="panel">
+      <h2>Facturas emitidas</h2>
+      <div class="filters">
+        <label>Año <select id="h-year"></select></label>
+        <label>Trimestre
+          <select id="h-q"><option value="">Todos</option><option value="1">1T</option><option value="2">2T</option><option value="3">3T</option><option value="4">4T</option></select>
+        </label>
+      </div>
+      <div class="send-box">
+        <label class="send-mail">Correo del gestor <input id="h-gestor" type="email" placeholder="gestor@ejemplo.com"></label>
+        <button class="btn primary" id="h-send" type="button">✉️ Enviar resumen de facturas al gestor</button>
+        <p class="send-help">Abre Gmail con el <b>resumen escrito dentro del correo</b> (lo mismo que ves en la tabla de abajo, del año o trimestre elegido): número, fecha, cliente, base, IVA, impuesto turístico, total y la suma del periodo. Es lo que el gestor necesita para el 303 y el 390. El CSV se guarda además en la carpeta por si lo quiere en Excel. <b>No incluye los PDF</b> de las facturas: si te los pide, están en la carpeta <b>facturas</b> y puedes arrastrarlos al mismo correo.</p>
+        <p class="send-note" id="h-note" hidden></p>
+      </div>
+      <div class="summary" id="h-summary"></div>
+      <div class="table-wrap"><table class="hist">
+        <thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>Estancia</th><th class="r">Base</th><th class="r">IVA 10 %</th><th class="r">Imp. turístico</th><th class="r">Total</th><th></th></tr></thead>
+        <tbody id="h-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- GASTOS -->
+  <section id="view-gastos" hidden>
+    <div class="panel">
+      <h2>Gastos de la vivienda</h2>
+      <p class="hint">Apunta aquí las facturas que te hacen a ti (reparaciones, limpieza, lavandería, suministros, comisiones…). Solo si la factura sale a tu nombre y NIF, su IVA se puede restar en el modelo 303.</p>
+      <form id="g-form" class="row" style="align-items:end" autocomplete="off">
+        <label>Fecha factura <input id="g-fecha" type="date" required></label>
+        <label>Proveedor <input id="g-prov" required></label>
+        <label>NIF proveedor <input id="g-nif"></label>
+        <label>Concepto <input id="g-conc"></label>
+        <label>Base imponible € <input id="g-base" class="num" inputmode="decimal" placeholder="0,00" required></label>
+        <label>Tipo IVA
+          <select id="g-tipo"><option value="21">21 %</option><option value="10">10 %</option><option value="4">4 %</option><option value="0">0 % / exento</option></select>
+        </label>
+        <label>Cuota IVA € <input id="g-cuota" class="num" inputmode="decimal" placeholder="auto"></label>
+        <div><button type="submit" class="btn primary">Añadir gasto</button></div>
+      </form>
+      <div class="filters">
+        <label>Año <select id="g-year"></select></label>
+        <label>Trimestre
+          <select id="g-q"><option value="">Todos</option><option value="1">1T</option><option value="2">2T</option><option value="3">3T</option><option value="4">4T</option></select>
+        </label>
+      </div>
+      <div class="summary" id="g-summary"></div>
+      <div class="table-wrap"><table class="hist">
+        <thead><tr><th>Fecha</th><th>Proveedor</th><th>NIF</th><th>Concepto</th><th class="r">Base</th><th class="r">Tipo</th><th class="r">Cuota IVA</th><th class="r">Total</th><th></th></tr></thead>
+        <tbody id="g-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- MODELOS -->
+  <section id="view-modelos" hidden>
+    <div class="panel">
+      <h2>Cifras para los modelos de IVA</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn primary" href="https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G414.shtml" target="_blank" rel="noopener">Ir a Hacienda · Modelo 303 ↗</a>
+        <a class="btn primary" href="https://sede.agenciatributaria.gob.es/Sede/procedimientoini/G412.shtml" target="_blank" rel="noopener">Ir a Hacienda · Modelo 390 ↗</a>
+        <a class="btn" href="https://sede.agenciatributaria.gob.es/" target="_blank" rel="noopener">Sede de Hacienda ↗</a>
+        <a class="btn" href="https://www.atib.es/" target="_blank" rel="noopener">ATIB · impuesto turístico ↗</a>
+      </div>
+      <p class="hint">Se abren en una pestaña nueva: así puedes tener las cifras aquí y el formulario de Hacienda al lado. En la página de Hacienda pulsa «Presentación» del año que toque y luego «Formulario».</p>
+      <p class="hint">Calculadas con tus facturas guardadas y tus gastos. Pulsa una cifra para copiarla y pégala en el formulario de la Sede Electrónica de Hacienda. Las casillas pueden cambiar de un año a otro: compruébalas en el formulario o con tu gestor antes de presentar.</p>
+      <div class="filters">
+        <label>Año <select id="m-year"></select></label>
+        <label>Periodo
+          <select id="m-p"><option value="1">1T · modelo 303</option><option value="2">2T · modelo 303</option><option value="3">3T · modelo 303</option><option value="4">4T · modelo 303</option><option value="A">Año completo · modelo 390</option></select>
+        </label>
+      </div>
+      <div class="aeat-box">
+        <h3>📄 Archivo para importar en Hacienda</h3>
+        <p class="hint">Crea el archivo oficial del <b>303</b> (trimestre elegido) o del <b>390</b> (año completo) con las cifras de abajo. En el formulario de Hacienda pulsa <b>«Importar»</b>, elige este archivo y las casillas se rellenan solas. <b>Revisa todo antes de presentar.</b> Formato oficial de 2026 (303 versión 1.01, 390 versión 1.00).</p>
+        <div class="row">
+          <label>Apellidos del titular <input id="a-apellidos" placeholder="Como en el NIF"></label>
+          <label>Nombre del titular <input id="a-nombre"></label>
+        </div>
+        <div class="row">
+          <label>Epígrafe IAE (390) <input id="a-epig" maxlength="4"></label>
+          <label>Clave de actividad (390) <input id="a-clave" maxlength="3"></label>
+        </div>
+        <label>Actividad (390) <input id="a-act" maxlength="40"></label>
+        <div><button type="button" class="btn primary" id="a-gen">⬇️ Generar archivo para Hacienda</button></div>
+        <p class="send-note" id="a-note" hidden></p>
+      </div>
+      <div id="m-out" class="modelo"></div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-settings" hidden>
+    <form class="panel form" id="set-form" style="max-width:720px">
+      <h2>Mis datos de emisor</h2>
+      <p class="hint">Aparecen en todas las facturas. Se guardan en este navegador.</p>
+      <fieldset>
+        <legend>Titular</legend>
+        <label>Nombre y apellidos / Razón social <input id="s-nombre"></label>
+        <div class="row">
+          <label>NIF <input id="s-nif"></label>
+          <label>Teléfono <input id="s-tel"></label>
+        </div>
+        <label>Domicilio fiscal <textarea id="s-dir" rows="2"></textarea></label>
+        <label>Email <input id="s-email" type="email"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Logotipo</legend>
+        <div class="logo-box"><img id="l-prev" alt="Logotipo actual" hidden><span id="l-none" class="hint">Sin logotipo</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn" style="display:inline-flex;color:var(--fg)">Elegir imagen… <input type="file" id="l-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label>
+          <button type="button" class="btn danger" id="l-del">Quitar logotipo</button>
+        </div>
+        <p class="hint">PNG o JPG. Se guarda al momento y sale arriba a la izquierda de la factura.</p>
+      </fieldset>
+      <fieldset>
+        <legend>Vivienda</legend>
+        <label>Nombre de la casa <input id="s-casa"></label>
+        <label>Dirección de la vivienda <textarea id="s-casadir" rows="2"></textarea></label>
+        <label>Nº de registro turístico (ETV, VT, VUT…) <input id="s-reg"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Valores por defecto</legend>
+        <div class="row">
+          <label>Serie <input id="s-serie"></label>
+          <label>Serie rectificativas <input id="s-serieR"></label>
+          <label>Impuesto turístico €/persona/noche <input id="s-tasa" class="num" type="number" step="0.01" min="0"></label>
+        </div>
+        <label>IBAN para transferencias (opcional) <input id="s-iban"></label>
+        <label>Texto al pie <textarea id="s-pie" rows="2"></textarea></label>
+      </fieldset>
+      <div class="actions">
+        <button type="submit" class="btn primary">Guardar mis datos</button>
+      </div>
+      <fieldset>
+        <legend>Carpeta de facturas</legend>
+        <p class="hint" id="d-name"></p>
+        <div><button type="button" class="btn" id="d-pick">Elegir carpeta…</button></div>
+      </fieldset>
+      <fieldset>
+        <legend>Copia de seguridad</legend>
+        <p class="hint">Las facturas se guardan solo en este navegador. Descarga una copia a menudo y guárdala en un sitio seguro.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn" id="b-export">Descargar copia (.json)</button>
+          <label class="btn" style="display:inline-flex;color:var(--fg)">Restaurar copia… <input type="file" id="b-import" accept=".json,application/json" hidden></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Empezar de cero</legend>
+        <p class="hint">Borra todas las facturas y el contador vuelve a la nº 1. Úsalo solo para quitar las facturas de prueba, antes de empezar a facturar de verdad. Tus datos, tu logotipo y la carpeta elegida se mantienen. Antes de borrar se guarda una copia por si acaso.</p>
+        <label class="check"><input type="checkbox" id="z-gastos" checked> Borrar también los gastos</label>
+        <div><button type="button" class="btn danger" id="z-btn">Borrar facturas de prueba…</button></div>
+      </fieldset>
+    </form>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(() => {
+  const IVA = 0.10;
+  const $ = id => document.getElementById(id);
+  const KEY_S = 'fcv.settings', KEY_I = 'fcv.invoices';
+
+  // ---------- almacenamiento ----------
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+
+  const defaults = {
+    nombre: 'Titular de EJEMPLO', nif: '00000000T', tel: '+34 600 000 000', email: 'reservas@example.com',
+    dir: 'C/ de la Mar, 12\n07001 Palma (Illes Balears)', casa: 'Casa de ejemplo',
+    casadir: 'Camí des Pou, 5\n07460 Pollença (Illes Balears)', reg: 'ETV/0000',
+    serie: 'CV', serieR: 'R', tasa: 2, iban: '', pie: 'Servicio de alojamiento turístico sujeto a IVA al tipo reducido del 10 % (art. 91.Uno.2.2.º Ley 37/1992).'
+  };
+  let settings = load(KEY_S, null);
+  const isExample = !settings;
+  settings = Object.assign({}, defaults, settings || {});
+  let invoices = load(KEY_I, []);
+  const KEY_G = 'fcv.gastos';
+  const KEY_R = 'fcv.reservas';
+  let reservas = (() => { try { return JSON.parse(localStorage.getItem(KEY_R)) || null; } catch { return null; } })();
+  let impRef = null; // reserva de la que viene la factura que se está haciendo
+  let gastos = load(KEY_G, []);
+  // mode: 'new' (factura nueva), 'view' (emitida, solo lectura) o 'rect' (rectificativa en preparación)
+  let mode = 'new', viewing = null, curRect = null;
+  const diffCalc = (a, b) => ({ lines: a.lines, base: r2(a.base - b.base), cuota: r2(a.cuota - b.cuota), tasa: r2((a.tasa || 0) - (b.tasa || 0)), total: r2(a.total - b.total) });
+
+  // ---------- utilidades ----------
+  const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+  const eur = n => (n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const fdate = s => { if (!s) return '—'; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const today = () => new Date().toISOString().slice(0, 10);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const nights = (a, b) => { if (!a || !b) return 0; const n = Math.round((new Date(b) - new Date(a)) / 864e5); return n > 0 ? n : 0; };
+  const toast = msg => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200); };
+  const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; };
+
+  function nextNumber(serie, year) {
+    const used = invoices.filter(i => i.serie === serie && i.fecha.slice(0, 4) === String(year)).map(i => parseInt(i.numero, 10) || 0);
+    return (used.length ? Math.max(...used) : 0) + 1;
+  }
+  const fullNumber = inv => `${inv.serie}${inv.serie ? '-' : ''}${inv.fecha.slice(0, 4)}/${String(inv.numero).padStart(3, '0')}`;
+
+  // ---------- cálculo ----------
+  function calc(inv) {
+    const n = nights(inv.entrada, inv.salida), pn = num(inv.precioNoche);
+    const auto = pn > 0 && n > 0 ? [{ desc: `Alojamiento (${n} noche${n > 1 ? 's' : ''} × ${eur(pn)})`, importe: String(r2(pn * n)) }] : [];
+    const lines = auto.concat(inv.lines).filter(l => l.desc || num(l.importe)).map(l => {
+      const imp = num(l.importe);
+      let base, cuota;
+      if (inv.modo === 'total') { base = r2(imp / (1 + IVA)); cuota = r2(imp - base); }
+      else { base = r2(imp); cuota = r2(base * IVA); }
+      return { desc: l.desc, base, cuota, total: r2(base + cuota) };
+    });
+    const base = r2(lines.reduce((s, l) => s + l.base, 0));
+    const cuota = r2(lines.reduce((s, l) => s + l.cuota, 0));
+    const tasa = inv.tasaOn ? r2(num(inv.tasaTarifa) * num(inv.adultos) * num(inv.tasaNoches)) : 0;
+    return { lines, base, cuota, tasa, total: r2(base + cuota + tasa) };
+  }
+
+  // ---------- formulario ----------
+  function lineRow(l = { desc: '', importe: '' }) {
+    const div = document.createElement('div');
+    div.className = 'line';
+    div.innerHTML = `<input class="l-desc" placeholder="Concepto" value="${esc(l.desc)}"><input class="l-imp num" inputmode="decimal" placeholder="0,00" value="${esc(l.importe)}"><button type="button" class="icon-btn" title="Quitar concepto" aria-label="Quitar concepto">×</button>`;
+    div.querySelector('button').onclick = () => { div.remove(); render(); };
+    $('lines').appendChild(div);
+  }
+
+  function readForm() {
+    return {
+      rect: curRect ? Object.assign({}, curRect, { motivo: $('r-motivo').value.trim() }) : undefined,
+      serie: $('f-serie').value.trim(), numero: parseInt($('f-numero').value, 10) || 1, fecha: $('f-fecha').value || today(),
+      cliente: { nombre: $('c-nombre').value.trim(), nif: $('c-nif').value.trim(), pais: $('c-pais').value.trim(), dir: $('c-dir').value.trim(), email: $('c-email').value.trim() },
+      entrada: $('e-in').value, salida: $('e-out').value,
+      adultos: num($('e-adultos').value), menores: num($('e-menores').value),
+      modo: $('p-modo').value, precioNoche: $('p-noche').value,
+      lines: [...document.querySelectorAll('#lines .line')].map(d => ({ desc: d.querySelector('.l-desc').value, importe: d.querySelector('.l-imp').value })),
+      tasaOn: $('t-on').checked, tasaTarifa: num($('t-tarifa').value), tasaNoches: num($('t-noches').value),
+      pago: $('n-pago').value, notas: $('n-notas').value.trim(),
+      reserva: impRef || undefined
+    };
+  }
+
+  function fillForm(inv, m = 'new') {
+    mode = m; viewing = m === 'view' ? inv : null; curRect = inv.rect || null; impRef = inv.reserva || null;
+    $('f-serie').value = inv.serie; $('f-numero').value = inv.numero; $('f-fecha').value = inv.fecha;
+    $('c-nombre').value = inv.cliente.nombre; $('c-nif').value = inv.cliente.nif; $('c-pais').value = inv.cliente.pais;
+    $('c-dir').value = inv.cliente.dir; $('c-email').value = inv.cliente.email || '';
+    $('e-in').value = inv.entrada; $('e-out').value = inv.salida;
+    $('e-adultos').value = inv.adultos; $('e-menores').value = inv.menores;
+    $('p-modo').value = inv.modo; $('p-noche').value = inv.precioNoche || '';
+    $('lines').innerHTML = ''; inv.lines.forEach(lineRow);
+    $('t-on').checked = inv.tasaOn; $('t-tarifa').value = inv.tasaTarifa; $('t-noches').value = inv.tasaNoches;
+    $('n-pago').value = inv.pago; $('n-notas').value = inv.notas;
+    $('r-box').hidden = !curRect;
+    if (curRect) { $('r-ref').textContent = `Rectifica la factura ${curRect.ref} del ${fdate(curRect.fecha)}.`; $('r-motivo').value = curRect.motivo || ''; }
+    document.querySelectorAll('#inv-form fieldset').forEach(f => f.disabled = m === 'view');
+    $('save').hidden = m === 'view';
+    $('save').textContent = m === 'rect' ? 'Guardar rectificativa' : 'Guardar factura';
+    $('pdf-again').hidden = m !== 'view';
+    $('rect-btn').hidden = m !== 'view' || !!inv.rect || !!inv.rectificadaPor;
+    $('lock-info').hidden = m !== 'view';
+    if (m === 'view') $('lock-info').textContent = inv.rectificadaPor
+      ? `Factura emitida y ya rectificada por la ${inv.rectificadaPor}. No se puede modificar.`
+      : inv.rect ? 'Factura rectificativa emitida. No se puede modificar.'
+      : 'Factura emitida: no se puede modificar. Si tiene un error, pulsa «Hacer rectificativa».';
+    render(); renderImp();
+  }
+
+  function blank(example) {
+    const f = today(), y = f.slice(0, 4);
+    const inv = {
+      serie: settings.serie, numero: nextNumber(settings.serie, y), fecha: f,
+      cliente: { nombre: '', nif: '', pais: 'España', dir: '', email: '' },
+      entrada: '', salida: '', adultos: 2, menores: 0, modo: 'total',
+      precioNoche: '', lines: [{ desc: 'Limpieza final', importe: '' }],
+      tasaOn: true, tasaTarifa: settings.tasa, tasaNoches: 0, pago: 'Transferencia bancaria', notas: ''
+    };
+    if (example) Object.assign(inv, {
+      cliente: { nombre: 'Jonas Becker (EJEMPLO)', nif: 'C01X00T47', pais: 'Alemania', dir: 'Lindenstraße 8\n10969 Berlin', email: '' },
+      entrada: '2026-08-01', salida: '2026-08-08', adultos: 2, menores: 1, tasaNoches: 7,
+      precioNoche: '220', lines: [{ desc: 'Limpieza final', importe: '88' }]
+    });
+    return inv;
+  }
+
+  // ---------- vista de la factura ----------
+  function render() {
+    const inv = readForm();
+    const n = nights(inv.entrada, inv.salida);
+    $('e-noches').textContent = n ? `${n} noche${n > 1 ? 's' : ''} · ${inv.adultos + inv.menores} huésped${inv.adultos + inv.menores === 1 ? '' : 'es'}` : 'Indica las fechas de entrada y salida.';
+    $('t-fields').style.opacity = inv.tasaOn ? 1 : .45;
+    const pn = num(inv.precioNoche);
+    $('p-auto').textContent = !pn ? 'Escribe el precio por noche y se multiplica solo por las noches de la estancia.'
+      : !n ? 'Indica las fechas de entrada y salida para calcular el alojamiento.'
+      : `Alojamiento: ${n} noche${n > 1 ? 's' : ''} × ${eur(pn)} = ${eur(r2(pn * n))}${inv.modo === 'total' ? ' (IVA incluido)' : ' + IVA'}`;
+    const c = calc(inv);
+    const s = settings;
+    $('warn-emisor').hidden = !!(s.nombre && s.nif && s.dir);
+
+    const rows = c.lines.map(l => `<tr><td>${esc(l.desc)}</td><td class="r">${eur(l.base)}</td><td class="r">10 %</td><td class="r">${eur(l.cuota)}</td><td class="r">${eur(l.total)}</td></tr>`).join('');
+    const R = inv.rect, d = R ? diffCalc(c, R.origCalc) : null, o = R ? R.origCalc : null;
+    const totalsHtml = !R ? `
+        <div><span>Base imponible</span><span>${eur(c.base)}</span></div>
+        <div><span>IVA 10 %</span><span>${eur(c.cuota)}</span></div>
+        <div class="sub"><span>Subtotal alojamiento</span><span>${eur(c.base + c.cuota)}</span></div>
+        ${inv.tasaOn && c.tasa ? `<div><span>Impuesto turístico</span><span>${eur(c.tasa)}</span></div>` : ''}
+        <div class="grand"><span>Total factura</span><span>${eur(c.total)}</span></div>` : `
+        <div class="sub"><span>Total correcto</span><span>${eur(c.total)}</span></div>
+        <div class="sub"><span>Total factura original</span><span>${eur(o.total)}</span></div>
+        <div style="border-top:1px solid var(--rule);padding-top:1.5mm"><span>Diferencia base imponible</span><span>${eur(d.base)}</span></div>
+        <div><span>Diferencia IVA 10 %</span><span>${eur(d.cuota)}</span></div>
+        ${d.tasa ? `<div><span>Diferencia impuesto turístico</span><span>${eur(d.tasa)}</span></div>` : ''}
+        <div class="grand"><span>Total rectificativa</span><span>${eur(d.total)}</span></div>
+        <div class="sub"><span>${d.total < 0 ? 'Importe a devolver al cliente' : d.total > 0 ? 'Importe a cobrar al cliente' : 'Sin diferencia de importe'}</span><span></span></div>`;
+    const tasaRow = inv.tasaOn && c.tasa ? `<tr><td>Impuesto sobre estancias turísticas<br><small style="color:var(--ink-muted)">${inv.adultos} pers. × ${inv.tasaNoches} noches × ${eur(inv.tasaTarifa)} · no sujeto a IVA</small></td><td class="r">—</td><td class="r">—</td><td class="r">—</td><td class="r">${eur(c.tasa)}</td></tr>` : '';
+
+    $('invoice').innerHTML = `
+      <div class="inv-head">
+        <div>
+          ${s.logo ? `<img class="inv-logo" src="${s.logo}" alt="">` : ''}
+          <h2${R ? ' style="font-size:18pt"' : ''}>${R ? 'Factura rectificativa' : 'Factura'}</h2>
+          ${s.casa ? `<div style="font-weight:600;margin-top:1mm">${esc(s.casa)}</div>` : ''}
+          ${s.reg ? `<div style="color:var(--ink-muted);font-size:9pt">Registro turístico ${esc(s.reg)}</div>` : ''}
+        </div>
+        <div class="inv-meta">
+          <div>Nº <b>${esc(fullNumber(inv))}</b></div>
+          <div>Fecha de expedición <b>${fdate(inv.fecha)}</b></div>
+          ${inv.salida && inv.salida !== inv.fecha ? `<div>Fecha de la operación <b>${fdate(inv.salida)}</b></div>` : ''}
+        </div>
+      </div>
+      <div class="parties">
+        <div class="party"><h3>Emisor</h3>
+          <p class="name">${esc(s.nombre) || '—'}</p><p>NIF ${esc(s.nif) || '—'}</p><p>${esc(s.dir)}</p>
+          <p>${[s.tel, s.email].filter(Boolean).map(esc).join(' · ')}</p></div>
+        <div class="party"><h3>Cliente</h3>
+          <p class="name">${esc(inv.cliente.nombre) || '—'}</p><p>${inv.cliente.nif ? 'NIF/Pasaporte ' + esc(inv.cliente.nif) : ''}</p>
+          <p>${esc(inv.cliente.dir)}</p><p>${esc(inv.cliente.pais)}</p>${inv.cliente.email ? '<p>' + esc(inv.cliente.email) + '</p>' : ''}</div>
+      </div>
+      <div class="stay">
+        <div><span>Entrada</span><b>${fdate(inv.entrada)}</b></div>
+        <div><span>Salida</span><b>${fdate(inv.salida)}</b></div>
+        <div><span>Noches</span><b>${n || '—'}</b></div>
+        <div><span>Huéspedes</span><b>${inv.adultos} ad.${inv.menores ? ' + ' + inv.menores + ' men.' : ''}</b></div>
+      </div>
+      ${s.casadir ? `<div style="font-size:9pt;color:var(--ink-muted);margin-top:-5mm">Alojamiento en ${esc(s.casadir).replace(/\n/g, ', ')}</div>` : ''}
+      ${R ? `<div style="border:1px solid var(--brand);border-radius:2mm;padding:3mm 4mm;font-size:9.5pt"><b>Rectifica la factura nº ${esc(R.ref)}</b> de fecha ${fdate(R.fecha)}.${R.motivo ? ` Motivo: ${esc(R.motivo)}` : ''}<br><span style="color:var(--ink-muted)">Rectificación por diferencias (art. 15 RD 1619/2012). Abajo, los conceptos correctos.</span></div>` : ''}
+      <table class="items">
+        <thead><tr><th>${R ? 'Conceptos correctos' : 'Concepto'}</th><th class="r">Base imponible</th><th class="r">IVA</th><th class="r">Cuota IVA</th><th class="r">Importe</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" style="color:var(--ink-muted)">${R ? 'Sin conceptos: se anula la factura entera.' : 'Añade al menos un concepto.'}</td></tr>`}${tasaRow}</tbody>
+      </table>
+      <div class="totals">${totalsHtml}
+      </div>
+      <div class="inv-foot">
+        <p><b>Forma de pago:</b> ${esc(inv.pago)}${inv.pago.startsWith('Transferencia') && s.iban ? ' · IBAN ' + esc(s.iban) : ''}</p>
+        ${inv.notas ? `<p>${esc(inv.notas)}</p>` : ''}
+        ${s.pie ? `<p>${esc(s.pie)}</p>` : ''}
+      </div>`;
+  }
+
+  // ---------- importar reservas de la agencia (CSV o Excel) ----------
+  // IMPORT-PURE-START
+  const normH = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  // Nombres de columna que se reconocen (en minúsculas y sin acentos). El orden importa: los más concretos primero.
+  const IMP_FIELDS = [
+    ['reserva', ['n reserva', 'no reserva', 'num reserva', 'numero reserva', 'numero de reserva', 'n de reserva', 'reserva', 'localizador', 'codigo reserva', 'codigo de reserva', 'codigo de confirmacion', 'confirmation code', 'booking number', 'booking id', 'reservation id', 'book number', 'referencia', 'reference', 'ref']],
+    ['nif', ['nif nie pasaporte', 'nif nie', 'nif', 'nie', 'dni', 'pasaporte', 'passport', 'documento', 'documento identidad', 'documento de identidad', 'n documento', 'id number', 'tax id', 'vat', 'cif']],
+    ['email', ['email', 'e mail', 'correo', 'correo electronico', 'mail']],
+    ['nombre', ['nombre y apellidos', 'nombre completo', 'nombre del cliente', 'cliente', 'huesped', 'huesped principal', 'guest', 'guest name', 'guest name s', 'guest names', 'titular', 'full name', 'name', 'nombre']],
+    ['apellidos', ['apellidos', 'apellido', 'last name', 'surname', 'family name']],
+    ['pais', ['pais', 'country', 'nacionalidad', 'nationality', 'pais de residencia']],
+    ['dir', ['direccion', 'domicilio', 'address', 'calle', 'street']],
+    ['cp', ['codigo postal', 'cp', 'c p', 'postal code', 'zip', 'zip code']],
+    ['ciudad', ['ciudad', 'poblacion', 'localidad', 'municipio', 'city', 'town']],
+    ['entrada', ['fecha entrada', 'fecha de entrada', 'entrada', 'llegada', 'fecha llegada', 'fecha de llegada', 'check in', 'checkin', 'arrival', 'arrival date', 'start date', 'desde', 'inicio']],
+    ['salida', ['fecha salida', 'fecha de salida', 'salida', 'fecha de partida', 'check out', 'checkout', 'departure', 'departure date', 'end date', 'hasta', 'fin']],
+    ['noches', ['noches', 'n noches', 'numero de noches', 'nights', 'number of nights']],
+    ['menores', ['menores de 16', 'menores', 'ninos', 'children', 'kids', 'infants', 'bebes']],
+    ['adultos', ['adultos 16', 'adultos', 'adults', 'mayores']],
+    ['huespedes', ['huespedes', 'n huespedes', 'numero de huespedes', 'personas', 'ocupantes', 'guests', 'number of guests', 'pax', 'persons', 'people']],
+    ['iva', ['incluye iva', 'iva incluido', 'importe incluye iva', 'con iva', 'includes vat', 'vat included', 'iva']],
+    ['precioNoche', ['precio por noche', 'precio noche', 'tarifa noche', 'tarifa por noche', 'nightly rate', 'price per night', 'rate per night']],
+    ['limpieza', ['limpieza', 'gastos de limpieza', 'tarifa de limpieza', 'cleaning', 'cleaning fee']],
+    ['importe', ['importe alojamiento', 'importe del alojamiento', 'importe', 'importe total', 'precio', 'precio total', 'total', 'total reserva', 'amount', 'total amount', 'price', 'total price', 'payout', 'earnings', 'ingresos']],
+    ['canal', ['canal', 'plataforma', 'origen', 'portal', 'source', 'channel', 'agencia']]
+  ];
+  function impMap(header) {
+    const H = header.map(normH), used = new Set(), map = {};
+    const isDate = h => / (fecha|date|dia|day|on) /.test(` ${h} `);
+    // Primero los títulos idénticos; después los que contienen la palabra (por orden de preferencia)
+    for (const [k, syn] of IMP_FIELDS) {
+      const i = H.findIndex((h, j) => !used.has(j) && syn.includes(h));
+      if (i >= 0) { map[k] = i; used.add(i); }
+    }
+    for (const [k, syn] of IMP_FIELDS) {
+      if (map[k] !== undefined) continue;
+      const dateField = k === 'entrada' || k === 'salida';
+      for (const sy of syn) {
+        if (sy.length < 4) continue;
+        const i = H.findIndex((h, j) => !used.has(j) && h && (dateField || !isDate(h)) && (` ${h} `).includes(` ${sy} `));
+        if (i >= 0) { map[k] = i; used.add(i); break; }
+      }
+    }
+    return map;
+  }
+  // Fechas: 15/11/2026, 15-11-26, 2026-11-15, 15.11.2026 10:00, fecha de Excel…
+  function impDate(v, order = 'dmy') {
+    if (v == null || v === '') return '';
+    const p2 = n => String(n).padStart(2, '0');
+    if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${p2(v.getMonth() + 1)}-${p2(v.getDate())}`;
+    if (typeof v === 'number' && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 864e5)); return `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())}`; }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+    if (m) return `${m[1]}-${p2(m[2])}-${p2(m[3])}`;
+    m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+    if (m) {
+      let [, d, mo, y] = m; if (y.length === 2) y = '20' + y;
+      if (order === 'mdy' || (+mo > 12 && +d <= 12)) [d, mo] = [mo, d]; // formato inglés mes/día
+      return `${y}-${p2(mo)}-${p2(d)}`;
+    }
+    const meses = { ene: 1, jan: 1, feb: 2, mar: 3, abr: 4, apr: 4, may: 5, jun: 6, jul: 7, ago: 8, aug: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12, dec: 12 };
+    m = normH(s).match(/^(\d{1,2}) (?:de )?([a-z]{3})[a-z]* (?:de )?(\d{4})/);
+    if (m && meses[m[2]]) return `${m[3]}-${p2(meses[m[2]])}-${p2(m[1])}`;
+    return '';
+  }
+  // Importes: 840 · 840,00 · 1.234,56 · 1,234.56 · 840 € · EUR 840
+  function impNum(v) {
+    if (typeof v === 'number') return v;
+    let s = String(v ?? '').replace(/[^\d.,-]/g, '');
+    if (!s) return NaN;
+    const c = s.lastIndexOf(','), d = s.lastIndexOf('.');
+    if (c >= 0 && d >= 0) s = c > d ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+    else if (c >= 0) s = /,\d{3}$/.test(s) && !/,\d{1,2}$/.test(s) && (s.match(/,/g).length > 1 || s.split(',')[0].length <= 3) && s.split(',')[1].length === 3 ? s.replace(/,/g, '') : s.replace(/,/g, '.');
+    else if (d >= 0 && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+    const n = parseFloat(s); return isNaN(n) ? NaN : n;
+  }
+  function impCsv(text) {
+    text = text.replace(/^﻿/, '');
+    const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+    const count = ch => { let n = 0, q = false; for (const c of first) { if (c === '"') q = !q; else if (!q && c === ch) n++; } return n; };
+    const sep = [';', '\t', ','].reduce((a, b) => count(b) > count(a) ? b : a, ';');
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true;
+      else if (c === sep) { row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(r => r.some(x => String(x).trim()));
+  }
+  const nn = v => typeof v === 'number' && !isNaN(v) ? v : null; // número o nada
+  // De filas (la primera con títulos) a reservas
+  function impRows(rows) {
+    let hi = 0, best = -1;
+    rows.slice(0, 10).forEach((r, i) => { const n = Object.keys(impMap(r)).length; if (n > best) { best = n; hi = i; } });
+    const map = impMap(rows[hi] || []);
+    const get = (r, k) => map[k] === undefined ? '' : String(r[map[k]] ?? '').trim();
+    const raw = (r, k) => map[k] === undefined ? '' : r[map[k]];
+    // ¿Las fechas vienen día/mes (España) o mes/día (inglés)? Se mira en todo el archivo.
+    let order = 'dmy';
+    for (const r of rows.slice(hi + 1)) for (const k of ['entrada', 'salida']) {
+      const m = String(raw(r, k) ?? '').trim().match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.]\d{2,4}/);
+      if (m && +m[2] > 12) order = 'mdy';
+    }
+    const out = rows.slice(hi + 1).map(r => {
+      let nombre = get(r, 'nombre'); const ap = get(r, 'apellidos');
+      if (ap && !nombre.toLowerCase().includes(ap.toLowerCase())) nombre = (nombre + ' ' + ap).trim();
+      const entrada = impDate(raw(r, 'entrada'), order);
+      let salida = impDate(raw(r, 'salida'), order);
+      const nNoches = impNum(get(r, 'noches'));
+      if (!salida && entrada && nNoches > 0) { const d = new Date(entrada + 'T12:00:00'); d.setDate(d.getDate() + nNoches); salida = d.toISOString().slice(0, 10); }
+      const menores = impNum(get(r, 'menores'));
+      let adultos = impNum(get(r, 'adultos'));
+      const hues = impNum(get(r, 'huespedes'));
+      if (isNaN(adultos) && !isNaN(hues)) adultos = Math.max(0, hues - (isNaN(menores) ? 0 : menores));
+      const ivaTxt = normH(get(r, 'iva'));
+      const sinIva = /^(no|sin|n|false|0|excluido|sin iva|no incluido|excl)/.test(ivaTxt);
+      const dir = [get(r, 'dir'), [get(r, 'cp'), get(r, 'ciudad')].filter(Boolean).join(' ')].filter(Boolean).join('\n');
+      return {
+        reserva: get(r, 'reserva'), nombre, nif: get(r, 'nif'), email: get(r, 'email'), pais: get(r, 'pais'), dir,
+        entrada, salida, adultos: isNaN(adultos) ? null : adultos, menores: isNaN(menores) ? 0 : menores,
+        importe: nn(impNum(get(r, 'importe'))), precioNoche: nn(impNum(get(r, 'precioNoche'))), limpieza: nn(impNum(get(r, 'limpieza'))),
+        modo: sinIva ? 'base' : 'total', canal: get(r, 'canal')
+      };
+    }).filter(x => x.nombre || x.entrada);
+    return { map, list: out };
+  }
+  // IMPORT-PURE-END
+
+  const impKey = r => r.reserva ? 'R:' + normH(r.reserva) : 'N:' + normH(r.nombre) + '|' + r.entrada;
+  const impDone = r => invoices.some(i => !i.rect && (i.reserva ? i.reserva === impKey(r) : normH(i.cliente.nombre) === normH(r.nombre) && i.entrada === r.entrada));
+  function renderImp() {
+    const box = $('imp-list'); if (!box) return;
+    $('imp-clear').hidden = !reservas;
+    if (!reservas) { box.innerHTML = ''; return; }
+    const pend = reservas.list.filter(r => !impDone(r)).length;
+    $('imp-info').innerHTML = `<b>${esc(reservas.file)}</b>: ${reservas.list.length} reserva${reservas.list.length === 1 ? '' : 's'}, ${pend} sin facturar. Pulsa una para rellenar la factura.${reservas.faltan ? `<br>⚠️ No encuentro en el archivo: <b>${esc(reservas.faltan)}</b>. Tendrás que escribirlo a mano.` : ''}`;
+    box.innerHTML = reservas.list.map((r, i) => {
+      const done = impDone(r), imp = r.importe != null ? eur(r.importe) : r.precioNoche != null ? eur(r.precioNoche) + '/noche' : '';
+      return `<button type="button" class="imp-item${done ? ' done' : ''}" data-i="${i}"><span><b>${esc(r.nombre || '(sin nombre)')}</b>${done ? '<span class="tag">Ya facturada</span>' : ''}</span>
+        <small>${fdate(r.entrada)} → ${fdate(r.salida)}${r.adultos != null ? ` · ${r.adultos} adulto${r.adultos === 1 ? '' : 's'}` : ''}${r.menores ? ` · ${r.menores} menor${r.menores === 1 ? '' : 'es'}` : ''}${imp ? ' · ' + imp : ''}${r.reserva ? ' · Reserva ' + esc(r.reserva) : ''}</small></button>`;
+    }).join('');
+  }
+  $('imp-list').addEventListener('click', e => {
+    const b = e.target.closest('.imp-item'); if (!b) return;
+    const r = reservas.list[+b.dataset.i];
+    if (impDone(r) && !b.dataset.confirm) { b.dataset.confirm = '1'; toast('Esta reserva ya tiene factura. Pulsa otra vez si quieres hacer otra.'); setTimeout(() => delete b.dataset.confirm, 4000); return; }
+    const inv = blank(false), n = nights(r.entrada, r.salida);
+    Object.assign(inv.cliente, { nombre: r.nombre, nif: r.nif, email: r.email, dir: r.dir });
+    if (r.pais) inv.cliente.pais = r.pais;
+    inv.entrada = r.entrada; inv.salida = r.salida; inv.tasaNoches = n;
+    if (r.adultos != null) inv.adultos = r.adultos;
+    inv.menores = r.menores; inv.modo = r.modo; inv.lines = [];
+    if (r.precioNoche > 0) inv.precioNoche = String(r.precioNoche);
+    else if (r.importe > 0) inv.lines.push({ desc: `Alojamiento (${n || '?'} noche${n === 1 ? '' : 's'}, del ${fdate(r.entrada)} al ${fdate(r.salida)})`, importe: String(r2(r.importe)) });
+    if (r.limpieza > 0) inv.lines.push({ desc: 'Limpieza final', importe: String(r.limpieza) });
+    if (/airbnb|booking|vrbo|expedia|homeaway/i.test(r.canal)) inv.pago = 'Plataforma (Airbnb, Booking…)';
+    if (r.reserva) inv.notas = `Reserva nº ${r.reserva}${r.canal ? ' (' + r.canal + ')' : ''}`;
+    inv.reserva = impKey(r);
+    fillForm(inv);
+    const falta = [!r.nombre && 'nombre', !r.nif && 'NIF/pasaporte', !r.dir && 'dirección', !r.entrada && 'entrada', !r.salida && 'salida', r.importe == null && r.precioNoche == null && 'importe', r.adultos == null && 'adultos'].filter(Boolean);
+    toast(falta.length ? `Rellenada. Falta: ${falta.join(', ')}` : 'Factura rellenada: revísala y guarda');
+    $('inv-form').scrollIntoView({ behavior: 'smooth' });
+  });
+  async function loadXlsx() {
+    if (window.XLSX) return;
+    await new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+  }
+  $('imp-file').onchange = async e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    let rows;
+    try {
+      if (/\.xlsx?$/i.test(file.name)) {
+        await loadXlsx();
+        const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' }).filter(r => r.some(x => String(x).trim()));
+      } else {
+        const buf = await file.arrayBuffer();
+        let text = new TextDecoder('utf-8').decode(buf);
+        if (text.includes('\uFFFD')) text = new TextDecoder('windows-1252').decode(buf);
+        rows = impCsv(text);
+      }
+    } catch (err) { toast(/\.xlsx?$/i.test(file.name) ? 'No he podido abrir el Excel (hace falta internet la primera vez)' : 'No he podido leer el archivo'); return; }
+    const { map, list } = impRows(rows || []);
+    if (!list.length || (map.nombre === undefined && map.entrada === undefined)) { toast('No encuentro reservas en ese archivo: ¿tiene una fila con los títulos de las columnas?'); return; }
+    const etiquetas = { nombre: 'nombre del cliente', nif: 'NIF/pasaporte', dir: 'dirección', entrada: 'fecha de entrada', salida: 'fecha de salida', importe: 'importe' };
+    const faltan = Object.entries(etiquetas).filter(([k]) => map[k] === undefined && !(k === 'salida' && map.noches !== undefined) && !(k === 'importe' && map.precioNoche !== undefined)).map(([, v]) => v);
+    if (map.adultos === undefined && map.huespedes === undefined) faltan.push('número de adultos');
+    reservas = { file: file.name, list, faltan: faltan.join(', ') };
+    try { localStorage.setItem(KEY_R, JSON.stringify(reservas)); } catch {}
+    renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
+  };
+  $('imp-clear').onclick = () => { reservas = null; try { localStorage.removeItem(KEY_R); } catch {} renderImp(); $('imp-info').textContent = 'Elige el archivo que te manda la agencia y pulsa una reserva: la factura se rellena sola. Revisa los datos antes de guardar.'; };
+
+  // ---------- eventos del formulario ----------
+  $('inv-form').addEventListener('input', e => {
+    if (e.target.id === 'e-in' || e.target.id === 'e-out') $('t-noches').value = nights($('e-in').value, $('e-out').value);
+    if (e.target.id === 'f-fecha' && mode !== 'view') $('f-numero').value = nextNumber($('f-serie').value.trim(), ($('f-fecha').value || today()).slice(0, 4));
+    render();
+  });
+  $('inv-form').addEventListener('change', render);
+  $('add-line').onclick = () => { lineRow(); render(); };
+  $('reset').onclick = () => { fillForm(blank(false)); toast('Factura en blanco'); };
+  $('print').onclick = () => window.print();
+
+  // ---------- carpeta en el ordenador (Chrome / Edge) ----------
+  const canDir = !!window.showDirectoryPicker;
+  let dirHandle = null;
+  const idb = (mode, fn) => new Promise((res, rej) => {
+    const o = indexedDB.open('fcv', 1);
+    o.onupgradeneeded = () => o.result.createObjectStore('kv');
+    o.onerror = () => rej(o.error);
+    o.onsuccess = () => { const tx = o.result.transaction('kv', mode); const r = fn(tx.objectStore('kv')); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); };
+  });
+  function showDir() {
+    const t = !canDir ? 'Este navegador no puede guardar en una carpeta: los PDF irán a Descargas. Con Chrome o Edge se guardan directamente en tu carpeta.'
+      : dirHandle ? `Al guardar, el PDF y la copia de seguridad se guardan en la carpeta «${dirHandle.name}».`
+      : 'Al guardar la primera factura te pediré la carpeta donde guardar los PDF.';
+    $('dir-info').textContent = t; $('d-name').textContent = t;
+    $('d-pick').hidden = !canDir;
+  }
+  async function loadDir() { try { dirHandle = (await idb('readonly', s => s.get('dir'))) || null; } catch {} showDir(); }
+  async function pickDir() {
+    dirHandle = await showDirectoryPicker({ id: 'facturas', mode: 'readwrite', startIn: 'desktop' });
+    try { await idb('readwrite', s => s.put(dirHandle, 'dir')); } catch {}
+    showDir();
+  }
+  async function ensureDir() {
+    if (!canDir) return null;
+    if (!dirHandle) await pickDir();
+    const o = { mode: 'readwrite' };
+    if (await dirHandle.queryPermission(o) !== 'granted' && await dirHandle.requestPermission(o) !== 'granted') return null;
+    return dirHandle;
+  }
+  async function writeFile(dir, name, blob) {
+    const h = await dir.getFileHandle(name, { create: true });
+    const w = await h.createWritable(); await w.write(blob); await w.close();
+  }
+  async function makePdf() {
+    if (!window.html2pdf) throw new Error('nolib');
+    const el = $('invoice'); el.classList.add('pdf-mode');
+    try {
+      return await html2pdf().set({ margin: 0, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+        .from(el).toPdf().get('pdf').then(pdf => { while (pdf.getNumberOfPages() > 1) pdf.deletePage(pdf.getNumberOfPages()); return pdf.output('blob'); });
+    } finally { el.classList.remove('pdf-mode'); }
+  }
+  const pdfName = inv => `${inv.rect ? 'Rectificativa' : 'Factura'} ${fullNumber(inv).replace(/\//g, '-')} - ${inv.cliente.nombre.replace(/[\\/:*?"<>|]/g, '').slice(0, 40)}.pdf`;
+  const backupBlob = () => new Blob([JSON.stringify({ settings, invoices, gastos }, null, 2)], { type: 'application/json' });
+  async function backupToDir() {
+    if (!dirHandle) return;
+    try { if (await dirHandle.queryPermission({ mode: 'readwrite' }) === 'granted') await writeFile(dirHandle, 'copia-seguridad-facturas.json', backupBlob()); } catch {}
+  }
+  function downloadBlob(name, blob) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  $('d-pick').onclick = () => pickDir().then(() => toast(`Carpeta elegida: ${dirHandle.name}`)).catch(() => {});
+
+  const pdfError = err => err.name === 'AbortError' ? 'Factura guardada, sin PDF: no elegiste carpeta'
+    : err.message === 'nolib' ? 'Factura guardada. Para crear el PDF hace falta conexión a internet'
+    : 'Factura guardada, pero no se pudo crear el PDF. Usa «Imprimir / PDF»';
+  async function savePdf(inv) {
+    const dir = await ensureDir();
+    const blob = await makePdf();
+    if (dir) {
+      await writeFile(dir, pdfName(inv), blob);
+      await writeFile(dir, 'copia-seguridad-facturas.json', backupBlob());
+    } else downloadBlob(pdfName(inv), blob);
+    return dir;
+  }
+  $('pdf-again').onclick = async () => {
+    if (!viewing) return;
+    try { const dir = await savePdf(viewing); toast(`PDF guardado${dir ? ` en «${dir.name}»` : ' en Descargas'}`); }
+    catch (err) { toast(pdfError(err).replace('Factura guardada, ', '').replace('Factura guardada. ', '')); }
+  };
+  $('rect-btn').onclick = () => {
+    const o = viewing; if (!o) return;
+    const r = structuredClone(o);
+    ['id', 'calc', 'calcCorr', 'emitida', 'rectificadaPor'].forEach(k => delete r[k]);
+    r.serie = settings.serieR || 'R'; r.fecha = today(); r.numero = nextNumber(r.serie, r.fecha.slice(0, 4));
+    r.rect = { id: o.id, ref: fullNumber(o), fecha: o.fecha, motivo: '', origCalc: o.calcCorr || o.calc };
+    fillForm(r, 'rect'); window.scrollTo({ top: 0 });
+    toast('Corrige los datos, escribe el motivo y guarda');
+    $('r-motivo').focus();
+  };
+
+  $('inv-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (mode === 'view') return;
+    const inv = readForm();
+    const c = calc(inv);
+    if (!inv.cliente.nombre) { toast('Falta el nombre del cliente'); $('c-nombre').focus(); return; }
+    if (inv.rect) {
+      if (!inv.rect.motivo) { toast('Escribe el motivo de la rectificación'); $('r-motivo').focus(); return; }
+    } else if (!c.lines.length) { toast('Añade al menos un concepto con importe'); return; }
+    const dup = invoices.find(i => i.serie === inv.serie && i.fecha.slice(0, 4) === inv.fecha.slice(0, 4) && i.numero === inv.numero);
+    if (dup) { toast(`El número ${fullNumber(inv)} ya existe`); $('f-numero').focus(); return; }
+    if (inv.rect) {
+      inv.calcCorr = c; inv.calc = diffCalc(c, inv.rect.origCalc);
+      if (!inv.calc.base && !inv.calc.cuota && !inv.calc.tasa) { toast('Los importes son iguales que en la original: no hay nada que rectificar'); return; }
+    } else { delete inv.rect; inv.calc = c; }
+    inv.id = 'f' + Date.now(); inv.emitida = today();
+    invoices.push(inv);
+    if (inv.rect) { const o = invoices.find(i => i.id === inv.rect.id); if (o) o.rectificadaPor = fullNumber(inv); }
+    const ok = save(KEY_I, invoices);
+    if (!ok) { invoices.pop(); toast('No se pudo guardar en este navegador'); return; }
+    // Desde aquí la factura está emitida: se muestra bloqueada hasta que se cree el PDF
+    fillForm(inv, 'view');
+    toast(`${inv.rect ? 'Rectificativa' : 'Factura'} ${fullNumber(inv)} guardada. Creando PDF…`);
+    try {
+      const dir = await savePdf(inv);
+      // Todo guardado: deja la pantalla lista para la siguiente factura con el número siguiente
+      const next = blank(false);
+      fillForm(next);
+      window.scrollTo({ top: 0 });
+      toast(`PDF guardado${dir ? ` en «${dir.name}»` : ' en Descargas'}. Lista la factura ${fullNumber(next)}`);
+    } catch (err) { toast(pdfError(err)); }
+  });
+
+  // ---------- historial ----------
+  function renderHistory() {
+    yearOptions($('h-year'), invoices.map(i => i.fecha));
+    const list = filtered();
+    const sum = k => r2(list.reduce((s, i) => s + i.calc[k], 0));
+    $('h-summary').innerHTML = `<div><span>Facturas</span><b>${list.length}</b></div><div><span>Base imponible</span><b>${eur(sum('base'))}</b></div><div><span>IVA repercutido</span><b>${eur(sum('cuota'))}</b></div><div><span>Imp. turístico</span><b>${eur(sum('tasa'))}</b></div><div><span>Total facturado</span><b>${eur(sum('total'))}</b></div>`;
+    $('h-body').innerHTML = list.length ? list.map(i => `<tr data-id="${i.id}">
+      <td style="font-family:var(--mono)">${esc(fullNumber(i))}${i.rect ? `<br><small style="color:var(--muted)">rectifica ${esc(i.rect.ref)}</small>` : ''}${i.rectificadaPor ? `<br><small style="color:var(--danger)">rectificada por ${esc(i.rectificadaPor)}</small>` : ''}</td><td>${fdate(i.fecha)}</td><td>${esc(i.cliente.nombre)}</td>
+      <td>${fdate(i.entrada)} → ${fdate(i.salida)}</td>
+      <td class="r">${eur(i.calc.base)}</td><td class="r">${eur(i.calc.cuota)}</td><td class="r">${eur(i.calc.tasa)}</td><td class="r"><b>${eur(i.calc.total)}</b></td>
+      <td class="acts"><button class="btn" data-a="open">Ver</button> ${!i.rect && !i.rectificadaPor ? '<button class="btn" data-a="rect">Rectificar</button> ' : ''}<button class="btn" data-a="copy">Duplicar</button>${canDelete(i) ? ' <button class="btn danger" data-a="del" title="Solo se puede borrar la última factura de la serie, para no dejar huecos en la numeración">Borrar</button>' : ''}</td></tr>`).join('')
+      : `<tr><td colspan="9" class="empty">No hay facturas en este periodo. Crea una en «Nueva factura» y pulsa Guardar.</td></tr>`;
+  }
+  // Solo se puede borrar la última de su serie y año (no deja huecos) y si nadie la ha rectificado
+  const canDelete = i => !i.rectificadaPor && i.numero === Math.max(...invoices.filter(x => x.serie === i.serie && x.fecha.slice(0, 4) === i.fecha.slice(0, 4)).map(x => x.numero));
+  function filtered() {
+    const y = $('h-year').value, q = $('h-q').value;
+    return invoices.filter(i => i.fecha.startsWith(y) && (!q || Math.ceil(parseInt(i.fecha.slice(5, 7), 10) / 3) === +q))
+      .sort((a, b) => (a.fecha + String(a.numero).padStart(6, '0')).localeCompare(b.fecha + String(b.numero).padStart(6, '0')));
+  }
+  $('h-year').onchange = renderHistory; $('h-q').onchange = renderHistory;
+  $('h-body').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const id = b.closest('tr').dataset.id, inv = invoices.find(i => i.id === id);
+    if (b.dataset.a === 'open') { fillForm(structuredClone(inv), 'view'); show('new'); }
+    if (b.dataset.a === 'rect') { fillForm(structuredClone(inv), 'view'); show('new'); $('rect-btn').click(); }
+    if (b.dataset.a === 'copy') {
+      const c = structuredClone(inv);
+      ['id', 'calc', 'calcCorr', 'emitida', 'rectificadaPor', 'rect'].forEach(k => delete c[k]);
+      c.serie = settings.serie; c.fecha = today(); c.numero = nextNumber(c.serie, c.fecha.slice(0, 4));
+      fillForm(c); show('new'); toast('Copia lista: revisa fechas y guarda');
+    }
+    if (b.dataset.a === 'del') {
+      if (b.dataset.confirm) {
+        invoices = invoices.filter(i => i.id !== id);
+        if (inv.rect) { const o = invoices.find(i => i.id === inv.rect.id); if (o) delete o.rectificadaPor; }
+        save(KEY_I, invoices); if (viewing && viewing.id === id) fillForm(blank(false));
+        renderHistory(); backupToDir(); toast('Factura borrada');
+      }
+      else { b.dataset.confirm = '1'; b.textContent = '¿Seguro?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = 'Borrar'; } }, 3000); }
+    }
+  });
+
+  // En Chrome/Edge abre «Guardar en…» y recuerda la última carpeta elegida; en otros navegadores descarga normal.
+  async function download(name, text, type) {
+    if (window.showSaveFilePicker) {
+      const ext = name.slice(name.lastIndexOf('.'));
+      try {
+        const h = await showSaveFilePicker({ id: 'facturas', suggestedName: name, startIn: 'desktop', types: [{ description: ext === '.csv' ? 'CSV' : 'Copia de seguridad', accept: { [type.split(';')[0]]: [ext] } }] });
+        const w = await h.createWritable(); await w.write(new Blob([text], { type })); await w.close();
+        toast(`Guardado: ${h.name}`); return;
+      } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function buildCsv() {
+    const list = filtered();
+    const f = n => n.toFixed(2).replace('.', ',');
+    const head = ['Número', 'Fecha expedición', 'Fecha operación', 'Cliente', 'NIF cliente', 'País', 'Base imponible', 'Tipo IVA', 'Cuota IVA', 'Impuesto turístico', 'Total', 'Rectifica a'];
+    const rows = list.map(i => [fullNumber(i), fdate(i.fecha), fdate(i.salida), i.cliente.nombre, i.cliente.nif, i.cliente.pais, f(i.calc.base), '10%', f(i.calc.cuota), f(i.calc.tasa || 0), f(i.calc.total), i.rect ? i.rect.ref : '']);
+    const csv = '﻿' + [head, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const periodo = `${$('h-year').value}${$('h-q').value ? '-' + $('h-q').value + 'T' : ''}`;
+    return { csv, periodo, n: list.length, name: `facturas-emitidas-${periodo}.csv` };
+  }
+
+  // ---------- enviar al gestor ----------
+  // Los navegadores no dejan adjuntar archivos a un correo por seguridad: se guarda el CSV en la carpeta
+  // de facturas y se abre Gmail con el correo ya escrito; solo hay que arrastrar el archivo y enviar.
+  $('h-gestor').value = settings.gestor || '';
+  $('h-gestor').onchange = () => { settings.gestor = $('h-gestor').value.trim(); save(KEY_S, settings); backupToDir(); };
+  const note = msg => { $('h-note').innerHTML = msg; $('h-note').hidden = !msg; };
+  $('h-send').onclick = async () => {
+    const to = $('h-gestor').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { $('h-gestor').focus(); toast('Escribe primero el correo del gestor'); return; }
+    settings.gestor = to; save(KEY_S, settings);
+    const c = buildCsv();
+    if (!c.n) { toast('No hay facturas en ese periodo'); return; }
+    const per = c.periodo.replace('-', ' ');
+    const subject = `Facturas emitidas ${per}${settings.casa ? ' – ' + settings.casa : ''}`;
+    // Resumen escrito en el propio correo
+    const list = filtered();
+    const sum = k => list.reduce((a, i) => a + (i.calc[k] || 0), 0);
+    const lines = list.map(i => `• ${fullNumber(i)} · ${fdate(i.fecha)} · ${i.cliente.nombre}${i.cliente.nif ? ' (' + i.cliente.nif + ')' : ''}\n   Base ${eur(i.calc.base)} · IVA 10 % ${eur(i.calc.cuota)} · Imp. turístico ${eur(i.calc.tasa || 0)} · Total ${eur(i.calc.total)}${i.rect ? '\n   Rectifica a ' + i.rect.ref : ''}`);
+    const totales = `TOTAL ${per} (${c.n} factura${c.n === 1 ? '' : 's'}):\n   Base ${eur(sum('base'))} · IVA 10 % ${eur(sum('cuota'))} · Imp. turístico ${eur(sum('tasa'))} · Total ${eur(sum('total'))}`;
+    const firma = `\n\nUn saludo,\n${settings.nombre || ''}`;
+    let body = `Hola,\n\nTe paso el resumen de las facturas emitidas (${per}):\n\n${lines.join('\n\n')}\n\n${totales}${firma}`;
+    const mk = b => `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(b)}`;
+    let corto = false;
+    if (mk(body).length > 7500) { corto = true; body = `Hola,\n\nTe adjunto el listado de facturas emitidas (${per}).\n\n${totales}${firma}`; }
+    const url = mk(body);
+    note('');
+    // 1. Guardar el CSV en la carpeta de facturas (o en Descargas si no hay carpeta)
+    const blob = new Blob([c.csv], { type: 'text/csv;charset=utf-8' });
+    let donde = '';
+    try { const dir = await ensureDir(); if (dir) { await writeFile(dir, c.name, blob); donde = `la carpeta <b>${dir.name}</b>`; } } catch {}
+    if (!donde) { downloadBlob(c.name, blob); donde = 'la carpeta <b>Descargas</b>'; }
+    // 2. Abrir Gmail con el correo escrito
+    const w = window.open(url, '_blank');
+    note(corto
+      ? `Son muchas facturas para escribirlas en el correo: lleva solo los totales. Arrastra <b>${c.name}</b> (está en ${donde}) al correo, o pulsa el clip 📎, y dale a Enviar.`
+      : `${w ? 'Gmail abierto en otra pestaña con el resumen escrito.' : 'Pulsa el botón para abrir Gmail con el resumen escrito.'} Revísalo y dale a Enviar. Si el gestor lo quiere en Excel, adjunta también <b>${c.name}</b> (está en ${donde}).`)
+    $('h-note').insertAdjacentHTML('beforeend', `
+<br><a class="btn primary" style="margin-top:8px" href="${url}" target="_blank" rel="noopener">✉️ Abrir Gmail</a>`);
+  };
+
+  // ---------- ajustes ----------
+  const sMap = { nombre: 's-nombre', nif: 's-nif', tel: 's-tel', dir: 's-dir', email: 's-email', casa: 's-casa', casadir: 's-casadir', reg: 's-reg', serie: 's-serie', serieR: 's-serieR', tasa: 's-tasa', iban: 's-iban', pie: 's-pie' };
+  const fillSettings = () => { Object.entries(sMap).forEach(([k, id]) => $(id).value = settings[k] ?? ''); showLogo(); };
+  function showLogo() { $('l-prev').hidden = !settings.logo; $('l-none').hidden = !!settings.logo; if (settings.logo) $('l-prev').src = settings.logo; }
+  // Reduce la imagen a 600 px como máximo para que quepa en el navegador y el PDF no pese
+  $('l-file').onchange = e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 600 / Math.max(img.naturalWidth || 600, img.naturalHeight || 600));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round((img.naturalWidth || 600) * k); cv.height = Math.round((img.naturalHeight || 300) * k);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      settings.logo = file.type === 'image/jpeg' ? cv.toDataURL('image/jpeg', 0.9) : cv.toDataURL('image/png');
+      URL.revokeObjectURL(img.src);
+      toast(save(KEY_S, settings) ? 'Logotipo guardado' : 'La imagen es demasiado grande; prueba con otra más pequeña');
+      showLogo(); render(); backupToDir();
+    };
+    img.onerror = () => toast('No se pudo leer esa imagen');
+    img.src = URL.createObjectURL(file);
+  };
+  $('l-del').onclick = () => { settings.logo = ''; save(KEY_S, settings); showLogo(); render(); backupToDir(); toast('Logotipo quitado'); };
+  $('set-form').addEventListener('submit', e => {
+    e.preventDefault();
+    Object.entries(sMap).forEach(([k, id]) => settings[k] = k === 'tasa' ? num($(id).value) : $(id).value.trim());
+    toast(save(KEY_S, settings) ? 'Datos guardados' : 'No se pudo guardar en este navegador');
+    showCasa();
+    render();
+  });
+  $('b-export').onclick = () => download(`copia-facturas-${today()}.json`, JSON.stringify({ settings, invoices, gastos }, null, 2), 'application/json');
+  $('b-import').onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data.invoices)) throw 0;
+      settings = Object.assign({}, defaults, data.settings || {}); invoices = data.invoices;
+      gastos = Array.isArray(data.gastos) ? data.gastos : [];
+      save(KEY_S, settings); save(KEY_I, invoices); save(KEY_G, gastos); fillSettings(); fillForm(blank(false));
+      toast(`Copia restaurada: ${invoices.length} facturas`);
+    } catch { toast('Ese archivo no es una copia válida'); }
+    e.target.value = '';
+  };
+
+  // ---------- gastos ----------
+  const quarter = f => Math.ceil(parseInt(f.slice(5, 7), 10) / 3);
+  function yearOptions(sel, dates) {
+    // Desde 6 años atrás (lo que hay que guardar las facturas) hasta el año que viene, más cualquier año con datos
+    const now = +today().slice(0, 4), set = new Set(dates.filter(Boolean).map(f => f.slice(0, 4)));
+    for (let y = now - 6; y <= now + 1; y++) set.add(String(y));
+    const years = [...set].sort().reverse();
+    const cur = sel.value || String(now);
+    sel.innerHTML = years.map(y => `<option${y === cur ? ' selected' : ''}>${y}</option>`).join('');
+  }
+  const gastoCuota = () => r2(num($('g-base').value) * num($('g-tipo').value) / 100);
+  const syncCuota = () => { $('g-cuota').placeholder = gastoCuota().toFixed(2).replace('.', ','); };
+  $('g-base').oninput = syncCuota; $('g-tipo').onchange = syncCuota;
+  $('g-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const base = r2(num($('g-base').value));
+    if (!base) { toast('Escribe la base imponible del gasto'); return; }
+    const tipo = num($('g-tipo').value);
+    const cuota = $('g-cuota').value.trim() ? r2(num($('g-cuota').value)) : gastoCuota();
+    gastos.push({ id: 'g' + Date.now(), fecha: $('g-fecha').value, prov: $('g-prov').value.trim(), nif: $('g-nif').value.trim(), conc: $('g-conc').value.trim(), base, tipo, cuota });
+    save(KEY_G, gastos); backupToDir();
+    ['g-prov', 'g-nif', 'g-conc', 'g-base', 'g-cuota'].forEach(id => $(id).value = '');
+    $('g-year').value = $('g-fecha').value.slice(0, 4);
+    renderGastos(); toast('Gasto añadido'); $('g-prov').focus();
+  });
+  function renderGastos() {
+    yearOptions($('g-year'), gastos.map(g => g.fecha));
+    const y = $('g-year').value, q = $('g-q').value;
+    const list = gastos.filter(g => g.fecha.startsWith(y) && (!q || quarter(g.fecha) === +q)).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const sb = r2(list.reduce((s, g) => s + g.base, 0)), sc = r2(list.reduce((s, g) => s + g.cuota, 0));
+    $('g-summary').innerHTML = `<div><span>Gastos</span><b>${list.length}</b></div><div><span>Base</span><b>${eur(sb)}</b></div><div><span>IVA soportado</span><b>${eur(sc)}</b></div><div><span>Total pagado</span><b>${eur(sb + sc)}</b></div>`;
+    $('g-body').innerHTML = list.length ? list.map(g => `<tr data-id="${g.id}"><td>${fdate(g.fecha)}</td><td>${esc(g.prov)}</td><td>${esc(g.nif)}</td><td>${esc(g.conc)}</td>
+      <td class="r">${eur(g.base)}</td><td class="r">${g.tipo} %</td><td class="r">${eur(g.cuota)}</td><td class="r"><b>${eur(g.base + g.cuota)}</b></td>
+      <td class="acts"><button class="btn danger" data-a="del">Borrar</button></td></tr>`).join('')
+      : `<tr><td colspan="9" class="empty">No hay gastos en este periodo. Añade el primero con el formulario de arriba.</td></tr>`;
+  }
+  $('g-year').onchange = renderGastos; $('g-q').onchange = renderGastos;
+  $('g-body').addEventListener('click', e => {
+    const b = e.target.closest('button[data-a="del"]'); if (!b) return;
+    if (b.dataset.confirm) { const id = b.closest('tr').dataset.id; gastos = gastos.filter(g => g.id !== id); save(KEY_G, gastos); backupToDir(); renderGastos(); toast('Gasto borrado'); }
+    else { b.dataset.confirm = '1'; b.textContent = '¿Seguro?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = 'Borrar'; } }, 3000); }
+  });
+
+  // ---------- modelos 303 / 390 ----------
+  function modelos(year, p) {
+    const inP = f => f.startsWith(year) && (p === 'A' || quarter(f) === +p);
+    const fs = invoices.filter(i => inP(i.fecha)), gs = gastos.filter(g => inP(g.fecha));
+    const base10 = r2(fs.reduce((s, i) => s + i.calc.base, 0)), cuota10 = r2(fs.reduce((s, i) => s + i.calc.cuota, 0));
+    const gBase = r2(gs.reduce((s, g) => s + (g.cuota ? g.base : 0), 0)), gCuota = r2(gs.reduce((s, g) => s + g.cuota, 0));
+    const porTipo = [21, 10, 4].map(t => ({ t, base: r2(gs.filter(g => g.tipo === t).reduce((s, g) => s + g.base, 0)), cuota: r2(gs.filter(g => g.tipo === t).reduce((s, g) => s + g.cuota, 0)) })).filter(x => x.base);
+    const tasa = r2(fs.reduce((s, i) => s + (i.calc.tasa || 0), 0));
+    return { n: fs.length, ng: gs.length, base10, cuota10, gBase, gCuota, porTipo, tasa, resultado: r2(cuota10 - gCuota) };
+  }
+  const plain = n => typeof n === 'string' ? n : (n || 0).toFixed(2).replace('.', ',');
+  let modelosInit = false;
+  const cas = (n, label, v, cls = '') => `<div class="casilla ${cls}"><span class="n${n ? '' : ' blank'}">${n}</span><span>${label}</span><button type="button" data-copy="${plain(v)}" title="Copiar">${typeof v === 'number' ? eur(v) : esc(v)}</button></div>`;
+  function renderModelos() {
+    yearOptions($('m-year'), invoices.map(i => i.fecha).concat(gastos.map(g => g.fecha)));
+    const y = $('m-year').value, p = $('m-p').value, m = modelos(y, p);
+    const res = m.resultado > 0 ? `A ingresar: ${eur(m.resultado)}` : m.resultado < 0 ? `A compensar o devolver: ${eur(-m.resultado)}` : 'Sin actividad: resultado cero';
+    const conDatos = [...new Set(invoices.filter(i => i.fecha.startsWith(y)).map(i => quarter(i.fecha) + 'T'))].sort();
+    const aviso = !m.n && p !== 'A' ? `<p class="warn">No hay facturas en el ${p}T de ${y}. ${conDatos.length ? 'Tienes facturas en: ' + conDatos.join(', ') + '. Cámbialo en «Periodo».' : 'Este año aún no hay facturas guardadas.'} Cuenta la fecha de expedición de la factura, no la de la estancia.</p>` : '';
+    const head = aviso + `<p class="hint">${m.n} factura${m.n === 1 ? '' : 's'} emitida${m.n === 1 ? '' : 's'} y ${m.ng} gasto${m.ng === 1 ? '' : 's'} en ${p === 'A' ? 'el año ' + y : p + 'T ' + y}.</p>`;
+    let html;
+    if (p !== 'A') {
+      html = head + `
+      <section><h3>Modelo 303 · IVA devengado (régimen general)</h3>
+        ${cas('04', 'Base imponible al 10 %', m.base10)}
+        ${cas('05', 'Tipo %', '10,00')}
+        ${cas('06', 'Cuota al 10 %', m.cuota10)}
+        ${cas('27', 'Total cuota devengada', m.cuota10, 'total')}
+      </section>
+      <section><h3>Modelo 303 · IVA deducible</h3>
+        ${cas('28', 'Base: operaciones interiores corrientes', m.gBase)}
+        ${cas('29', 'Cuota: operaciones interiores corrientes', m.gCuota)}
+        ${cas('45', 'Total a deducir', m.gCuota, 'total')}
+      </section>
+      <section><h3>Modelo 303 · Resultado</h3>
+        ${cas('46', 'Resultado régimen general (27 − 45)', m.resultado, 'total')}
+        <div class="result">${res}</div>
+        <p class="hint">Si te quedó saldo a compensar de trimestres anteriores, aplícalo en el apartado «cuotas a compensar de periodos previos» del formulario. En el 4T, si sale a compensar, puedes pedir la devolución.</p>
+      </section>`;
+    } else {
+      html = head + `
+      <section><h3>Modelo 390 · IVA devengado (régimen ordinario)</h3>
+        ${cas('03', 'Base imponible al 10 %', m.base10)}
+        ${cas('04', 'Cuota al 10 %', m.cuota10)}
+        ${cas('', 'Total cuotas devengadas', m.cuota10, 'total')}
+      </section>
+      <section><h3>Modelo 390 · IVA deducible (operaciones interiores corrientes)</h3>
+        ${m.porTipo.length ? m.porTipo.map(x => cas('', `Gastos al ${x.t} %: base`, x.base) + cas('', `Gastos al ${x.t} %: cuota`, x.cuota)).join('') : '<p class="hint">No hay gastos con IVA este año.</p>'}
+        ${cas('', 'Total deducciones', m.gCuota, 'total')}
+      </section>
+      <section><h3>Modelo 390 · Resultado del año</h3>
+        ${cas('', 'Resultado (devengado − deducible)', m.resultado, 'total')}
+        ${cas('', 'Volumen de operaciones (base de las facturas)', m.base10)}
+        <p class="hint">El 390 resume los cuatro 303 del año. En el formulario, el IVA deducible va separado por tipo (21 %, 10 %, 4 %); las cifras de arriba ya vienen así.</p>
+      </section>`;
+    }
+    html += `<section><h3>Impuesto turístico cobrado (no va en el IVA)</h3>${cas('', 'Total cobrado a los huéspedes', m.tasa, 'total')}<p class="hint">Lo declaras aparte, en el organismo de tu comunidad (en Baleares, la <a href="https://www.atib.es/" target="_blank" rel="noopener">ATIB</a>).</p></section>`;
+    $('m-out').innerHTML = html;
+    aeatFill(); $('a-note').hidden = true;
+  }
+
+  // ---------- archivo oficial para importar el 303 / 390 en la Sede de Hacienda ----------
+  // Diseños de registro oficiales de la AEAT para 2026: DR303e26v101 (páginas 1, 3 y DID) y dr390e2026 (páginas 1 a 8).
+  // Cada campo: [posición, longitud, tipo (A texto · U número sin signo · S número con signo), casilla, constante]
+  const AEAT_DR = {"303:DP30301":[[1,2,"A","","<T"],[3,3,"U","","303"],[6,5,"U","","01000"],[11,1,"A","",">"],[12,1,"A","",""],[13,1,"A","",""],[14,9,"A","",""],[23,80,"A","",""],[103,4,"U","",""],[107,2,"A","",""],[109,1,"U","",""],[110,1,"U","",""],[111,1,"U","",""],[112,1,"U","",""],[113,1,"U","",""],[114,1,"U","",""],[115,1,"U","",""],[116,1,"U","",""],[117,1,"U","",""],[118,8,"A","",""],[126,1,"A","",""],[127,1,"U","",""],[128,1,"U","",""],[129,1,"U","",""],[130,1,"U","",""],[131,17,"U","150",""],[148,5,"U","151","00000"],[153,17,"U","152",""],[170,17,"U","165",""],[187,5,"U","166","00000"],[192,17,"U","167",""],[209,17,"U","01",""],[226,5,"U","02","00400"],[231,17,"U","03",""],[248,17,"U","153",""],[265,5,"U","154","00000"],[270,17,"U","155",""],[287,17,"U","04",""],[304,5,"U","05","01000"],[309,17,"U","06",""],[326,17,"U","07",""],[343,5,"U","08","02100"],[348,17,"U","09",""],[365,17,"U","10",""],[382,17,"U","11",""],[399,17,"U","12",""],[416,17,"U","13",""],[433,17,"S","14",""],[450,17,"S","15",""],[467,17,"U","156",""],[484,5,"U","157","00175"],[489,17,"U","158",""],[506,17,"U","168",""],[523,5,"U","169",""],[528,17,"U","170",""],[545,17,"U","16",""],[562,5,"U","17","00000"],[567,17,"U","18",""],[584,17,"U","19",""],[601,5,"U","20","00140"],[606,17,"U","21",""],[623,17,"U","22",""],[640,5,"U","23","00520"],[645,17,"U","24",""],[662,17,"S","25",""],[679,17,"S","26",""],[696,17,"S","27",""],[713,17,"U","28",""],[730,17,"U","29",""],[747,17,"U","30",""],[764,17,"U","31",""],[781,17,"U","32",""],[798,17,"U","33",""],[815,17,"U","34",""],[832,17,"U","35",""],[849,17,"U","36",""],[866,17,"U","37",""],[883,17,"U","38",""],[900,17,"U","39",""],[917,17,"S","40",""],[934,17,"S","41",""],[951,17,"S","42",""],[968,17,"S","43",""],[985,17,"S","44",""],[1002,17,"S","45",""],[1019,17,"S","46",""],[1036,521,"A","",""],[1557,13,"A","",""],[1570,12,"A","","</T30301000>"]],"303:DP30303":[[1,2,"A","","<T"],[3,3,"U","","303"],[6,5,"U","","03000"],[11,1,"A","",">"],[12,17,"S","59",""],[29,17,"S","60",""],[46,17,"S","120",""],[63,17,"S","122",""],[80,17,"S","123",""],[97,17,"S","124",""],[114,17,"S","62",""],[131,17,"S","63",""],[148,17,"S","74",""],[165,17,"S","75",""],[182,17,"S","76",""],[199,17,"S","64",""],[216,5,"U","65",""],[221,17,"S","66",""],[238,17,"U","77",""],[255,17,"U","110",""],[272,17,"U","78",""],[289,17,"U","87",""],[306,17,"S","68",""],[323,17,"S","108",""],[340,17,"S","69",""],[357,17,"U","70",""],[374,17,"U","109",""],[391,17,"U","112",""],[408,17,"S","71",""],[425,1,"A","",""],[426,1,"A","",""],[427,13,"A","",""],[440,1,"A","",""],[441,17,"U","111",""],[458,1,"A","",""],[459,1,"A","",""],[460,546,"A","",""],[1006,12,"A","","</T30303000>"]],"303:DP303DID":[[1,2,"A","","<T"],[3,3,"U","","303"],[6,5,"A","","DID00"],[11,1,"A","",">"],[12,11,"A","",""],[23,34,"A","",""],[57,70,"A","",""],[127,35,"A","",""],[162,30,"A","",""],[192,2,"A","",""],[194,1,"U","",""],[195,617,"A","",""],[812,12,"A","","</T303DID00>"]],"390:Pág. 1":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","01000"],[11,1,"A","",">"],[12,1,"A","",""],[13,1,"A","",""],[14,9,"A","",""],[23,60,"A","",""],[83,20,"A","",""],[103,4,"U","",""],[107,2,"A","",""],[109,1,"A","",""],[110,1,"A","",""],[111,7,"A","",""],[118,1,"A","",""],[119,1,"A","",""],[120,1,"A","",""],[121,9,"A","",""],[130,1,"A","",""],[131,1,"A","",""],[132,1,"A","",""],[133,1,"A","",""],[134,1,"U","",""],[135,1,"U","",""],[136,13,"A","",""],[149,40,"A","",""],[189,3,"A","",""],[192,4,"A","",""],[196,40,"A","",""],[236,3,"A","",""],[239,4,"A","",""],[243,40,"A","",""],[283,3,"A","",""],[286,4,"A","",""],[290,40,"A","",""],[330,3,"A","",""],[333,4,"A","",""],[337,40,"A","",""],[377,3,"A","",""],[380,4,"A","",""],[384,40,"A","",""],[424,3,"A","",""],[427,4,"A","",""],[431,1,"A","",""],[432,9,"A","",""],[441,37,"A","",""],[478,9,"A","",""],[487,80,"A","",""],[567,2,"A","",""],[569,17,"A","",""],[586,5,"A","",""],[591,2,"A","",""],[593,2,"A","",""],[595,2,"A","",""],[597,9,"A","",""],[606,20,"A","",""],[626,15,"A","",""],[641,5,"A","",""],[646,80,"A","",""],[726,9,"A","",""],[735,8,"U","",""],[743,12,"A","",""],[755,80,"A","",""],[835,9,"A","",""],[844,8,"U","",""],[852,12,"A","",""],[864,80,"A","",""],[944,9,"A","",""],[953,8,"U","",""],[961,12,"A","",""],[973,21,"A","",""],[994,13,"A","",""],[1007,20,"A","",""],[1027,150,"A","",""],[1177,12,"A","","</T39001000>"]],"390:Pág. 2":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","02000"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","700",""],[30,17,"S","701",""],[47,17,"S","667",""],[64,17,"S","668",""],[81,17,"S","01",""],[98,17,"S","02",""],[115,17,"S","702",""],[132,17,"S","703",""],[149,17,"S","669",""],[166,17,"S","670",""],[183,17,"S","03",""],[200,17,"S","04",""],[217,17,"S","05",""],[234,17,"S","06",""],[251,17,"S","704",""],[268,17,"S","705",""],[285,17,"S","671",""],[302,17,"S","672",""],[319,17,"S","500",""],[336,17,"S","501",""],[353,17,"S","706",""],[370,17,"S","707",""],[387,17,"S","673",""],[404,17,"S","674",""],[421,17,"S","502",""],[438,17,"S","503",""],[455,17,"S","504",""],[472,17,"S","505",""],[489,17,"S","708",""],[506,17,"S","709",""],[523,17,"S","675",""],[540,17,"S","676",""],[557,17,"S","643",""],[574,17,"S","644",""],[591,17,"S","710",""],[608,17,"S","711",""],[625,17,"S","677",""],[642,17,"S","678",""],[659,17,"S","645",""],[676,17,"S","646",""],[693,17,"S","647",""],[710,17,"S","648",""],[727,17,"S","712",""],[744,17,"S","713",""],[761,17,"S","679",""],[778,17,"S","680",""],[795,17,"S","07",""],[812,17,"S","08",""],[829,17,"S","714",""],[846,17,"S","715",""],[863,17,"S","681",""],[880,17,"S","682",""],[897,17,"S","09",""],[914,17,"S","10",""],[931,17,"S","11",""],[948,17,"S","12",""],[965,17,"S","13",""],[982,17,"S","14",""],[999,17,"S","716",""],[1016,17,"S","717",""],[1033,17,"S","683",""],[1050,17,"S","684",""],[1067,17,"S","21",""],[1084,17,"S","22",""],[1101,17,"S","718",""],[1118,17,"S","719",""],[1135,17,"S","685",""],[1152,17,"S","686",""],[1169,17,"S","23",""],[1186,17,"S","24",""],[1203,17,"S","25",""],[1220,17,"S","26",""],[1237,17,"S","720",""],[1254,17,"S","721",""],[1271,17,"S","687",""],[1288,17,"S","688",""],[1305,17,"S","545",""],[1322,17,"S","546",""],[1339,17,"S","722",""],[1356,17,"S","723",""],[1373,17,"S","689",""],[1390,17,"S","690",""],[1407,17,"S","547",""],[1424,17,"S","548",""],[1441,17,"S","551",""],[1458,17,"S","552",""],[1475,17,"S","27",""],[1492,17,"S","28",""],[1509,17,"S","29",""],[1526,17,"S","30",""],[1543,17,"S","649",""],[1560,17,"S","650",""],[1577,17,"S","31",""],[1594,17,"S","32",""],[1611,17,"S","33",""],[1628,17,"S","34",""],[1645,150,"A","",""],[1795,12,"A","","</T39002000>"]],"390:Pág. 2 bis":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","02B00"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","663",""],[30,17,"S","664",""],[47,17,"S","691",""],[64,17,"S","692",""],[81,17,"S","35",""],[98,17,"S","36",""],[115,17,"S","665",""],[132,17,"S","666",""],[149,17,"S","693",""],[166,17,"S","694",""],[183,17,"S","599",""],[200,17,"S","600",""],[217,17,"S","601",""],[234,17,"S","602",""],[251,17,"S","41",""],[268,17,"S","42",""],[285,17,"S","43",""],[302,17,"S","44",""],[319,17,"S","45",""],[336,17,"S","46",""],[353,17,"S","47",""],[370,150,"A","",""],[520,12,"A","","</T39002B00>"]],"390:Pág. 3":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","03000"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","695",""],[30,17,"S","696",""],[47,17,"S","190",""],[64,17,"S","191",""],[81,17,"S","724",""],[98,17,"S","725",""],[115,17,"S","697",""],[132,17,"S","698",""],[149,17,"S","603",""],[166,17,"S","604",""],[183,17,"S","605",""],[200,17,"S","606",""],[217,17,"S","48",""],[234,17,"S","49",""],[251,17,"S","745",""],[268,17,"S","746",""],[285,17,"S","506",""],[302,17,"S","507",""],[319,17,"S","726",""],[336,17,"S","727",""],[353,17,"S","747",""],[370,17,"S","748",""],[387,17,"S","607",""],[404,17,"S","608",""],[421,17,"S","609",""],[438,17,"S","610",""],[455,17,"S","512",""],[472,17,"S","513",""],[489,17,"S","749",""],[506,17,"S","750",""],[523,17,"S","196",""],[540,17,"S","197",""],[557,17,"S","728",""],[574,17,"S","729",""],[591,17,"S","751",""],[608,17,"S","752",""],[625,17,"S","611",""],[642,17,"S","612",""],[659,17,"S","613",""],[676,17,"S","614",""],[693,17,"S","50",""],[710,17,"S","51",""],[727,17,"S","753",""],[744,17,"S","754",""],[761,17,"S","514",""],[778,17,"S","515",""],[795,17,"S","730",""],[812,17,"S","731",""],[829,17,"S","755",""],[846,17,"S","756",""],[863,17,"S","615",""],[880,17,"S","616",""],[897,17,"S","617",""],[914,17,"S","618",""],[931,17,"S","520",""],[948,17,"S","521",""],[965,17,"S","757",""],[982,17,"S","758",""],[999,17,"S","202",""],[1016,17,"S","203",""],[1033,17,"S","732",""],[1050,17,"S","733",""],[1067,17,"S","759",""],[1084,17,"S","760",""],[1101,17,"S","619",""],[1118,17,"S","620",""],[1135,17,"S","621",""],[1152,17,"S","622",""],[1169,17,"S","52",""],[1186,17,"S","53",""],[1203,17,"S","761",""],[1220,17,"S","762",""],[1237,17,"S","208",""],[1254,17,"S","209",""],[1271,17,"S","734",""],[1288,17,"S","735",""],[1305,17,"S","763",""],[1322,17,"S","764",""],[1339,17,"S","623",""],[1356,17,"S","624",""],[1373,17,"S","625",""],[1390,17,"S","626",""],[1407,17,"S","54",""],[1424,17,"S","55",""],[1441,17,"S","765",""],[1458,17,"S","766",""],[1475,17,"S","214",""],[1492,17,"S","215",""],[1509,17,"S","736",""],[1526,17,"S","737",""],[1543,17,"S","767",""],[1560,17,"S","768",""],[1577,17,"S","627",""],[1594,17,"S","628",""],[1611,17,"S","629",""],[1628,17,"S","630",""],[1645,17,"S","56",""],[1662,17,"S","57",""],[1679,150,"A","",""],[1829,12,"A","","</T39003000>"]],"390:Pág. 4":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","04000"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","769",""],[30,17,"S","770",""],[47,17,"S","220",""],[64,17,"S","221",""],[81,17,"S","738",""],[98,17,"S","739",""],[115,17,"S","771",""],[132,17,"S","772",""],[149,17,"S","631",""],[166,17,"S","632",""],[183,17,"S","633",""],[200,17,"S","634",""],[217,17,"S","58",""],[234,17,"S","59",""],[251,17,"S","773",""],[268,17,"S","774",""],[285,17,"S","587",""],[302,17,"S","588",""],[319,17,"S","740",""],[336,17,"S","741",""],[353,17,"S","775",""],[370,17,"S","776",""],[387,17,"S","635",""],[404,17,"S","636",""],[421,17,"S","637",""],[438,17,"S","638",""],[455,17,"S","597",""],[472,17,"S","598",""],[489,17,"S","60",""],[506,17,"S","61",""],[523,17,"S","660",""],[540,17,"S","661",""],[557,17,"S","639",""],[574,17,"S","62",""],[591,17,"S","651",""],[608,17,"S","652",""],[625,17,"S","63",""],[642,17,"S","522",""],[659,17,"S","64",""],[676,17,"S","65",""],[693,150,"A","",""],[843,12,"A","","</T39004000>"]],"390:Pág. 5":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","05000"],[11,1,"A","",">"],[12,1,"A","",""],[13,4,"A","66",""],[17,10,"U","",""],[27,17,"U","",""],[44,10,"U","",""],[54,17,"U","",""],[71,10,"U","",""],[81,17,"U","",""],[98,10,"U","",""],[108,17,"U","",""],[125,10,"U","",""],[135,17,"U","",""],[152,10,"U","",""],[162,17,"U","",""],[179,10,"U","",""],[189,17,"U","",""],[206,17,"U","",""],[223,17,"A","",""],[240,17,"U","",""],[257,3,"U","",""],[260,17,"S","",""],[277,5,"U","",""],[282,17,"U","",""],[299,17,"U","",""],[316,17,"U","",""],[333,4,"A","66",""],[337,10,"U","",""],[347,17,"U","",""],[364,10,"U","",""],[374,17,"U","",""],[391,10,"U","",""],[401,17,"U","",""],[418,10,"U","",""],[428,17,"U","",""],[445,10,"U","",""],[455,17,"U","",""],[472,10,"U","",""],[482,17,"U","",""],[499,10,"U","",""],[509,17,"U","",""],[526,17,"U","",""],[543,17,"A","",""],[560,17,"U","",""],[577,3,"U","",""],[580,17,"S","",""],[597,5,"U","",""],[602,17,"U","",""],[619,17,"U","",""],[636,17,"U","",""],[653,2,"U","",""],[655,17,"U","",""],[672,6,"U","",""],[678,17,"U","",""],[695,17,"U","",""],[712,17,"S","",""],[729,2,"U","",""],[731,17,"U","",""],[748,6,"U","",""],[754,17,"U","",""],[771,17,"U","",""],[788,17,"S","",""],[805,2,"U","",""],[807,17,"U","",""],[824,6,"U","",""],[830,17,"U","",""],[847,17,"U","",""],[864,17,"S","",""],[881,2,"U","",""],[883,17,"U","",""],[900,6,"U","",""],[906,17,"U","",""],[923,17,"U","",""],[940,17,"S","",""],[957,2,"U","",""],[959,17,"U","",""],[976,6,"U","",""],[982,17,"U","",""],[999,17,"U","",""],[1016,17,"S","",""],[1033,17,"S","74",""],[1050,17,"S","75",""],[1067,17,"S","76",""],[1084,17,"S","77",""],[1101,17,"S","78",""],[1118,17,"S","79",""],[1135,17,"S","80",""],[1152,17,"S","81",""],[1169,17,"S","82",""],[1186,17,"S","83",""],[1203,1,"A","",""],[1204,1,"A","",""],[1205,303,"A","",""],[1508,12,"A","","</T39005000>"]],"390:Pág. 6":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","06000"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","658",""],[30,17,"S","84",""],[47,17,"U","659",""],[64,17,"U","85",""],[81,17,"U","112",""],[98,17,"S","86",""],[115,5,"U","87",""],[120,5,"U","88",""],[125,5,"U","89",""],[130,5,"U","90",""],[135,5,"U","91",""],[140,17,"S","658",""],[157,17,"S","84",""],[174,17,"S","92",""],[191,17,"U","659",""],[208,17,"U","93",""],[225,17,"U","112",""],[242,17,"S","94",""],[259,17,"U","95",""],[276,17,"U","96",""],[293,17,"U","524",""],[310,17,"U","97",""],[327,17,"U","98",""],[344,17,"U","662",""],[361,17,"U","525",""],[378,17,"U","526",""],[395,17,"S","99",""],[412,17,"S","653",""],[429,17,"S","103",""],[446,17,"S","104",""],[463,17,"S","105",""],[480,17,"S","110",""],[497,17,"S","125",""],[514,17,"S","126",""],[531,17,"S","127",""],[548,17,"S","128",""],[565,17,"S","100",""],[582,17,"S","101",""],[599,17,"S","102",""],[616,17,"S","227",""],[633,17,"S","228",""],[650,17,"S","106",""],[667,17,"S","107",""],[684,17,"S","108",""],[701,150,"A","",""],[851,12,"A","","</T39006000>"]],"390:Pág. 7":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","07000"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","230",""],[30,17,"S","109",""],[47,17,"S","231",""],[64,17,"S","232",""],[81,17,"S","111",""],[98,17,"S","113",""],[115,17,"S","523",""],[132,17,"S","654",""],[149,17,"S","655",""],[166,17,"S","656",""],[183,17,"S","657",""],[200,40,"A","",""],[240,4,"A","114",""],[244,17,"U","115",""],[261,17,"U","116",""],[278,1,"A","117",""],[279,5,"U","118",""],[284,40,"A","",""],[324,4,"A","114",""],[328,17,"U","115",""],[345,17,"U","116",""],[362,1,"A","117",""],[363,5,"U","118",""],[368,40,"A","",""],[408,4,"A","114",""],[412,17,"U","115",""],[429,17,"U","116",""],[446,1,"A","117",""],[447,5,"U","118",""],[452,40,"A","",""],[492,4,"A","114",""],[496,17,"U","115",""],[513,17,"U","116",""],[530,1,"A","117",""],[531,5,"U","118",""],[536,40,"A","",""],[576,4,"A","114",""],[580,17,"U","115",""],[597,17,"U","116",""],[614,1,"A","117",""],[615,5,"U","118",""],[620,150,"A","",""],[770,12,"A","","</T39007000>"]],"390:Pág. 8":[[1,2,"A","","<T"],[3,3,"U","","390"],[6,5,"U","","08000"],[11,1,"A","",">"],[12,1,"A","",""],[13,17,"S","139",""],[30,17,"S","140",""],[47,17,"S","141",""],[64,17,"S","142",""],[81,17,"S","143",""],[98,17,"S","144",""],[115,17,"S","145",""],[132,17,"S","146",""],[149,17,"S","147",""],[166,17,"S","148",""],[183,17,"S","149",""],[200,17,"S","150",""],[217,17,"S","151",""],[234,17,"S","152",""],[251,17,"S","640",""],[268,17,"S","153",""],[285,17,"S","154",""],[302,17,"S","155",""],[319,17,"S","156",""],[336,17,"S","157",""],[353,17,"S","158",""],[370,17,"S","159",""],[387,17,"S","160",""],[404,17,"S","161",""],[421,17,"S","162",""],[438,17,"S","163",""],[455,17,"S","164",""],[472,17,"S","165",""],[489,17,"S","166",""],[506,17,"S","167",""],[523,17,"S","168",""],[540,17,"S","169",""],[557,17,"S","641",""],[574,17,"S","170",""],[591,17,"S","171",""],[608,17,"S","172",""],[625,17,"S","173",""],[642,17,"S","174",""],[659,17,"S","175",""],[676,17,"S","176",""],[693,17,"S","177",""],[710,17,"S","178",""],[727,17,"S","179",""],[744,17,"S","180",""],[761,17,"S","181",""],[778,17,"S","182",""],[795,17,"S","183",""],[812,17,"S","184",""],[829,17,"S","185",""],[846,17,"S","186",""],[863,17,"S","642",""],[880,17,"S","187",""],[897,17,"S","188",""],[914,17,"S","189",""],[931,150,"A","",""],[1081,12,"A","","</T39008000>"]]};
+  const aeatTxt = v => String(v ?? '').toUpperCase().normalize('NFD').replace(/(N)̃/g, 'Ñ').replace(/(C)̧/g, 'Ç').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9ÑÇ ]/g, ' ').replace(/\s+/g, ' ').trim();
+  function aeatField([pos, len, t], v) {
+    if (t === 'A') return aeatTxt(v).slice(0, len).padEnd(len, ' ');
+    if (typeof v === 'string') return v.padStart(len, '0').slice(-len);
+    const c = Math.round((v || 0) * (len === 17 ? 100 : 1));
+    if (c < 0) { if (t !== 'S') throw new Error(`Importe negativo no admitido (posición ${pos})`); return 'N' + String(-c).padStart(len - 1, '0'); }
+    return String(c).padStart(len, '0');
+  }
+  // Monta una página: constantes, ceros y blancos por defecto, y los valores por casilla o por posición
+  function aeatPage(key, byCas = {}, byPos = {}) {
+    const rows = AEAT_DR[key]; let out = '';
+    for (const f of rows) {
+      const [pos, len, t, cas, k] = f;
+      let v;
+      if (byPos[pos] !== undefined) v = byPos[pos];
+      else if (cas && byCas[cas] !== undefined) v = byCas[cas];
+      if (v === undefined) out += k ? (t === 'A' ? k : k.padStart(len, '0')).padEnd(len, ' ').slice(0, len) : t === 'A' ? ' '.repeat(len) : '0'.repeat(len);
+      else out += aeatField(f, v);
+      if (out.length !== pos + len - 1) throw new Error(`Diseño descuadrado en ${key}, posición ${pos}`);
+    }
+    return out;
+  }
+  const aeatAux = () => '<AUX>' + ' '.repeat(70) + '0100' + ' '.repeat(4) + ' '.repeat(9) + ' '.repeat(213) + '</AUX>';
+  // Resultado de cada 303 del año aplicando las cuotas a compensar de trimestres anteriores
+  function aeatTrimestres(y) {
+    let comp = 0; const qs = [];
+    for (let q = 1; q <= 4; q++) {
+      const r = modelos(y, String(q)).resultado; let pend = comp, aplic = 0, res = r;
+      if (r > 0) { aplic = Math.min(comp, r); comp = r2(comp - aplic); res = r2(r - aplic); } else { comp = r2(comp - r); res = r < 0 ? r : 0; }
+      qs.push({ q, r, pend, aplic, res, compDespues: comp });
+    }
+    return qs;
+  }
+  function aeatNombre() {
+    const ap = $('a-apellidos').value.trim(), no = $('a-nombre').value.trim();
+    if (!ap || !no) throw new Error('Escribe los apellidos y el nombre del titular, tal como figuran en su NIF.');
+    if (!/^[0-9XYZKLM][0-9]{7}[A-Z]$|^[A-Z][0-9]{7}[0-9A-J]$/i.test((settings.nif || '').replace(/[\s-]/g, ''))) throw new Error('El NIF de «Mis datos» no parece válido. Revísalo antes de generar el archivo.');
+    return { ap, no, nif: settings.nif.replace(/[\s-]/g, '').toUpperCase() };
+  }
+  function aeat303(y, q) {
+    const t = aeatNombre(), m = modelos(y, String(q)), tr = aeatTrimestres(y)[q - 1], per = q + 'T';
+    const sinAct = !m.n && !m.ng;
+    const res = tr.res; // resultado tras aplicar lo pendiente de compensar
+    const tipo = sinAct || (!res && !tr.r) ? 'N' : res > 0 ? 'I' : res < 0 ? 'C' : 'N';
+    const p1 = aeatPage('303:DP30301', { '04': m.base10, '06': m.cuota10, '27': m.cuota10, '28': m.gBase, '29': m.gCuota, '45': m.gCuota, '46': m.resultado }, {
+      13: tipo, 14: t.nif, 23: `${t.ap} ${t.no}`, 103: String(y), 107: per,
+      109: '2', 110: '2', 111: '3', 112: '2', 113: '2', 114: '2', 115: '2', 116: '2', 117: '2', 127: '2',
+      128: q === 4 ? '2' : '0', 129: '0', 130: '0'
+    });
+    const p3 = aeatPage('303:DP30303', { '64': m.resultado, '65': '10000', '66': m.resultado, '110': tr.pend, '78': tr.aplic, '87': r2(tr.pend - tr.aplic), '69': res, '71': res }, { 425: sinAct ? 'X' : ' ' });
+    const did = aeatPage('303:DP303DID', {}, { 194: '0' });
+    return { name: `303_${y}_${per}.txt`, text: `<T3030${y}${per}0000>` + aeatAux() + p1 + p3 + did + `</T3030${y}${per}0000>`, tipo, res, tr };
+  }
+  function aeat390(y) {
+    const t = aeatNombre(), m = modelos(y, 'A'), qs = aeatTrimestres(y);
+    const pt = t => m.porTipo.find(x => x.t === t) || { base: 0, cuota: 0 };
+    const ded = { '190': pt(4).base, '191': pt(4).cuota, '603': pt(10).base, '604': pt(10).cuota, '605': pt(21).base, '606': pt(21).cuota };
+    const dBase = r2(m.porTipo.reduce((s, x) => s + x.base, 0)), dCuota = r2(m.porTipo.reduce((s, x) => s + x.cuota, 0));
+    const res = r2(m.cuota10 - dCuota);
+    const ingresado = r2(qs.reduce((s, x) => s + (x.res > 0 ? x.res : 0), 0)), aComp = qs[3].res < 0 ? qs[3].compDespues : 0;
+    const pages = [
+      aeatPage('390:Pág. 1', {}, { 14: t.nif, 23: t.ap, 83: t.no, 103: String(y), 109: '0', 110: '0', 118: '0', 119: '0', 120: '0', 130: '2', 131: '2', 132: '2', 133: '2', 134: '0', 135: '0',
+        149: $('a-act').value || 'ALOJAMIENTO TURISTICO', 189: $('a-clave').value || 'A03', 192: $('a-epig').value || '685', 431: '0' }),
+      aeatPage('390:Pág. 2', { '03': m.base10, '04': m.cuota10, '33': m.base10, '34': m.cuota10 }),
+      aeatPage('390:Pág. 2 bis'),
+      aeatPage('390:Pág. 3', Object.assign({ '48': dBase, '49': dCuota }, ded)),
+      aeatPage('390:Pág. 4', { '64': dCuota, '65': res }),
+      aeatPage('390:Pág. 5'),
+      aeatPage('390:Pág. 6', { '84': res, '86': res, '87': '10000', '92': res, '94': res, '95': ingresado, '97': aComp, '99': m.base10, '108': m.base10 }),
+      aeatPage('390:Pág. 7'),
+      aeatPage('390:Pág. 8')
+    ];
+    return { name: `390_${y}.txt`, text: `<T3900${y}0A0000>` + aeatAux() + pages.join('') + `</T3900${y}0A0000>`, res, ingresado, aComp };
+  }
+  const latin1 = s => { const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); if (c > 255) throw new Error('Carácter no admitido'); b[i] = c; } return b; };
+  function aeatFill() {
+    if (!settings.hApellidos && !settings.hNombre && settings.nombre && !/EJEMPLO/i.test(settings.nombre)) {
+      const w = settings.nombre.trim().split(/\s+/); settings.hNombre = w.shift() || ''; settings.hApellidos = w.join(' ');
+    }
+    $('a-apellidos').value = settings.hApellidos || ''; $('a-nombre').value = settings.hNombre || '';
+    $('a-epig').value = settings.hEpig || '685'; $('a-clave').value = settings.hClave || 'A03';
+    $('a-act').value = settings.hAct || 'Alojamientos turísticos extrahoteleros';
+    $('a-gen').textContent = $('m-p').value === 'A' ? `⬇️ Generar archivo del 390 (${$('m-year').value})` : `⬇️ Generar archivo del 303 (${$('m-p').value}T ${$('m-year').value})`;
+  }
+  ['a-apellidos', 'a-nombre', 'a-epig', 'a-clave', 'a-act'].forEach(id => $(id).addEventListener('change', () => {
+    Object.assign(settings, { hApellidos: $('a-apellidos').value.trim(), hNombre: $('a-nombre').value.trim(), hEpig: $('a-epig').value.trim(), hClave: $('a-clave').value.trim().toUpperCase(), hAct: $('a-act').value.trim() });
+    save(KEY_S, settings); backupToDir();
+  }));
+  $('a-gen').onclick = async () => {
+    const y = $('m-year').value, p = $('m-p').value, n = $('a-note');
+    let f;
+    try { f = p === 'A' ? aeat390(y) : aeat303(y, +p); } catch (e) { n.hidden = false; n.innerHTML = '⚠️ ' + esc(e.message); return; }
+    const blob = new Blob([latin1(f.text)], { type: 'text/plain' });
+    let donde = '';
+    try { const dir = await ensureDir(); if (dir) { await writeFile(dir, f.name, blob); donde = `la carpeta <b>${esc(dir.name)}</b>`; } } catch {}
+    if (!donde) { downloadBlob(f.name, blob); donde = 'la carpeta <b>Descargas</b>'; }
+    const tipos = { I: 'a ingresar', C: 'a compensar', N: 'sin actividad / resultado cero' };
+    const detalle = p === 'A'
+      ? `Resultado del año: <b>${eur(f.res)}</b>. Ingresado en los 303 del año: <b>${eur(f.ingresado)}</b>${f.aComp ? `. A compensar del 4T: <b>${eur(f.aComp)}</b>` : ''}.`
+      : `Resultado: <b>${eur(f.res)}</b> (${tipos[f.tipo]})${f.tr.aplic ? `, después de restar ${eur(f.tr.aplic)} pendientes de trimestres anteriores` : ''}.${f.tipo === 'C' && +p === 4 ? ' En el 4T puedes cambiar en el formulario «compensar» por «devolución».' : ''}`;
+    n.hidden = false;
+    n.innerHTML = `Archivo <b>${esc(f.name)}</b> guardado en ${donde}. ${detalle}<br>
+      En Hacienda: entra con la Cl@ve o el certificado del titular → modelo ${p === 'A' ? '390' : '303'} → <b>Presentación</b> → <b>Importar</b> → elige el archivo. Revisa las casillas, elige la forma de pago y pulsa <b>Presentar</b>.
+      <br><a class="btn" style="margin-top:8px" href="https://sede.agenciatributaria.gob.es/Sede/procedimientoini/${p === 'A' ? 'G412' : 'G414'}.shtml" target="_blank" rel="noopener">Ir a Hacienda · Modelo ${p === 'A' ? '390' : '303'} ↗</a>`;
+  };
+  $('m-year').onchange = renderModelos; $('m-p').onchange = renderModelos;
+  $('m-out').addEventListener('click', e => {
+    const b = e.target.closest('button[data-copy]'); if (!b) return;
+    navigator.clipboard?.writeText(b.dataset.copy).then(() => toast(`Copiado: ${b.dataset.copy}`), () => toast(b.dataset.copy));
+  });
+
+  // ---------- empezar de cero ----------
+  $('z-btn').onclick = async () => {
+    const b = $('z-btn'), n = invoices.length, ng = $('z-gastos').checked ? gastos.length : 0;
+    if (!n && !ng) { toast('No hay facturas que borrar: el contador ya está en la nº 1'); return; }
+    if (!b.dataset.confirm) {
+      b.dataset.confirm = '1';
+      b.textContent = `Sí, borrar ${n} factura${n === 1 ? '' : 's'}${ng ? ` y ${ng} gasto${ng === 1 ? '' : 's'}` : ''}`;
+      setTimeout(() => { if (b.dataset.confirm) { delete b.dataset.confirm; b.textContent = 'Borrar facturas de prueba…'; } }, 5000);
+      return;
+    }
+    delete b.dataset.confirm; b.textContent = 'Borrar facturas de prueba…';
+    // Copia de seguridad antes de borrar: en la carpeta elegida o, si no hay, en Descargas
+    const name = `copia-antes-de-borrar-${today()}.json`;
+    let where = 'Descargas';
+    try {
+      const dir = await ensureDir();
+      if (dir) { await writeFile(dir, name, backupBlob()); where = `«${dir.name}»`; } else downloadBlob(name, backupBlob());
+    } catch (err) {
+      if (err.name === 'AbortError') { toast('No se ha borrado nada: hace falta guardar antes una copia'); return; }
+      downloadBlob(name, backupBlob());
+    }
+    invoices = []; save(KEY_I, invoices);
+    if (ng) { gastos = []; save(KEY_G, gastos); }
+    await backupToDir();
+    fillForm(blank(false));
+    toast(`Listo: la próxima factura es la ${fullNumber(blank(false))}. Copia guardada en ${where}`);
+  };
+
+  // ---------- navegación ----------
+  function show(v) {
+    ['new', 'history', 'gastos', 'modelos', 'settings'].forEach(x => { $('view-' + x).hidden = x !== v; $('tab-' + x).setAttribute('aria-selected', x === v); });
+    if (v === 'history') renderHistory();
+    if (v === 'gastos') { if (!$('g-fecha').value) $('g-fecha').value = today(); renderGastos(); }
+    if (v === 'modelos') {
+      // Al abrir por primera vez, propone el último trimestre que tiene facturas o gastos (o el actual)
+      if (!modelosInit) {
+        const last = invoices.map(i => i.fecha).concat(gastos.map(g => g.fecha)).filter(Boolean).sort().pop() || today();
+        $('m-year').innerHTML = `<option>${last.slice(0, 4)}</option>`;
+        $('m-p').value = String(quarter(last)); modelosInit = true;
+      }
+      renderModelos();
+    }
+    if (v === 'settings') fillSettings();
+  }
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => show(b.dataset.view));
+
+  // ---------- inicio ----------
+  fillForm(blank(isExample && !invoices.length));
+  loadDir();
+  // Cabecera con el nombre de la casa de «Mis datos»
+  function showCasa() { const c = (settings.casa || '').trim() || 'Casa vacacional'; $('h-casa').textContent = c; document.title = `Facturas · ${c}`; }
+  showCasa();
+  if (isExample) setTimeout(() => toast('Datos de ejemplo: pon los tuyos en «Mis datos»'), 400);
+  window.__calc = calc;
+})();
+</script>
+</body>
+</html>
