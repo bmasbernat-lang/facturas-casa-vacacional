@@ -278,7 +278,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
           <label>NIF / pasaporte <input name="nif"></label>
           <label>Email <input type="email" name="email"></label>
           <label style="grid-column:1/-1">Dirección <input name="dir"></label>
-          <div style="grid-column:1/-1"><button type="submit" class="btn primary">Guardar reserva</button></div>
+          <div style="grid-column:1/-1"><button type="submit" class="btn primary" id="res-submit">Guardar reserva</button></div>
         </form>
       </details>
       <p class="hint">Las reservas se guardan aquí y en el Calendario. Las facturas se hacen después, pulsando una reserva.</p>
@@ -991,11 +991,14 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     $('imp-info').innerHTML = `<b>${esc(reservas.file)}</b>: ${reservas.list.length} reserva${reservas.list.length === 1 ? '' : 's'}, ${pend} sin facturar. Pulsa una para rellenar la factura.${reservas.faltan ? `<br>⚠️ No encuentro en el archivo: <b>${esc(reservas.faltan)}</b>. Tendrás que escribirlo a mano.` : ''}`;
     box.innerHTML = reservas.list.map((r, i) => {
       const done = impDone(r), imp = r.importe != null ? eur(r.importe) : r.precioNoche != null ? eur(r.precioNoche) + '/noche' : '';
-      return `<button type="button" class="imp-item${done ? ' done' : ''}" data-i="${i}"><span><b>${esc(r.nombre || '(sin nombre)')}</b>${done ? '<span class="tag">Ya facturada</span>' : ''}</span>
-        <small>${fdate(r.entrada)} → ${fdate(r.salida)}${r.adultos != null ? ` · ${r.adultos} adulto${r.adultos === 1 ? '' : 's'}` : ''}${r.menores ? ` · ${r.menores} menor${r.menores === 1 ? '' : 'es'}` : ''}${imp ? ' · ' + imp : ''}${r.reserva ? ' · Reserva ' + esc(r.reserva) : ''}</small></button>`;
+      return `<div class="imp-row" style="display:flex;gap:6px;align-items:stretch"><button type="button" class="imp-item${done ? ' done' : ''}" style="flex:1" data-i="${i}"><span><b>${esc(r.nombre || '(sin nombre)')}</b>${done ? '<span class="tag">Ya facturada</span>' : ''}</span>
+        <small>${fdate(r.entrada)} → ${fdate(r.salida)}${r.adultos != null ? ` · ${r.adultos} adulto${r.adultos === 1 ? '' : 's'}` : ''}${r.menores ? ` · ${r.menores} menor${r.menores === 1 ? '' : 'es'}` : ''}${imp ? ' · ' + imp : ''}${r.reserva ? ' · Reserva ' + esc(r.reserva) : ''}</small></button><span style="display:grid;gap:4px"><button type="button" class="btn" data-edit="${i}">✏️ Editar</button><button type="button" class="btn" data-del="${i}">🗑 Borrar</button></span></div>`;
     }).join('');
   }
   $('imp-list').addEventListener('click', e => {
+    const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]');
+    if (ed) { editarReserva(reservas.list[+ed.dataset.edit]); return; }
+    if (dl) { borrarReserva(reservas.list[+dl.dataset.del]); return; }
     const b = e.target.closest('.imp-item'); if (!b) return;
     const r = reservas.list[+b.dataset.i];
     if (impDone(r) && !b.dataset.confirm) { b.dataset.confirm = '1'; toast('Esta reserva ya tiene factura. Pulsa otra vez si quieres hacer otra.'); setTimeout(() => delete b.dataset.confirm, 4000); return; }
@@ -1081,6 +1084,25 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   };
   $('imp-file').onchange = impFile;
   $('imp-file2').onchange = impFile;
+  // Editar y borrar reservas de la lista
+  let resEditKey = null;
+  function editarReserva(r) {
+    const f = $('res-form'), set = (n, v) => { f.elements[n].value = v == null ? '' : String(v); };
+    if (r.canal && ![...f.elements.canal.options].some(o => o.value === r.canal)) f.elements.canal.add(new Option(r.canal, r.canal));
+    set('canal', r.canal); set('nombre', r.nombre); set('entrada', r.entrada); set('salida', r.salida);
+    set('adultos', r.adultos ?? 0); set('menores', r.menores ?? 0); set('importe', r.importe ?? '');
+    set('reserva', r.reserva); set('nif', r.nif); set('email', r.email); set('dir', r.dir);
+    resEditKey = impKey(r);
+    f.closest('details').open = true;
+    $('res-submit').textContent = 'Guardar cambios';
+    f.scrollIntoView({ behavior: 'smooth' });
+  }
+  function borrarReserva(r) {
+    if (!confirm(`¿Borrar la reserva de ${r.nombre || 'este cliente'}? Las facturas ya hechas no se borran.`)) return;
+    const k = impKey(r);
+    reservas = { ...reservas, list: reservas.list.filter(x => impKey(x) !== k) };
+    save(KEY_R, reservas); renderImp(); toast('Reserva borrada');
+  }
   $('res-form').onsubmit = e => {
     e.preventDefault();
     const f = e.target, v = n => f.elements[n].value.trim();
@@ -1094,6 +1116,8 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       importe: isNaN(importe) ? null : importe, precioNoche: null, limpieza: null, modo: 'total', canal: v('canal'), fuente: 'Manual'
     };
     const acumuladas = new Map(((reservas && reservas.list) || []).map(r => [impKey(r), r]));
+    if (resEditKey) acumuladas.delete(resEditKey);
+    resEditKey = null; $('res-submit').textContent = 'Guardar reserva';
     acumuladas.set(impKey(x), x);
     reservas = { file: (reservas && reservas.file) || 'Manual', list: [...acumuladas.values()], faltan: (reservas && reservas.faltan) || '' };
     save(KEY_R, reservas);
