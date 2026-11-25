@@ -1019,6 +1019,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     inv.menores = r.menores; inv.modo = r.modo; inv.lines = [];
     if (r.precioNoche > 0) inv.precioNoche = String(r.precioNoche);
     else if (r.importe > 0) inv.lines.push({ desc: `Alojamiento (${n || '?'} noche${n === 1 ? '' : 's'}, del ${fdate(r.entrada)} al ${fdate(r.salida)})`, importe: String(r2(r.importe)) });
+    else { const t = tarifaPara(r.entrada); if (t != null) inv.precioNoche = String(t); }
     if (r.limpieza > 0) inv.lines.push({ desc: 'Limpieza final', importe: String(r.limpieza) });
     if (/airbnb|booking|vrbo|expedia|homeaway/i.test(r.canal)) inv.pago = 'Plataforma (Airbnb, Booking…)';
     if (r.reserva) inv.notas = `Reserva nº ${r.reserva}${r.canal ? ' (' + r.canal + ')' : ''}`;
