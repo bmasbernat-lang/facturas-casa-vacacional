@@ -403,7 +403,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
       <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
-      <p class="hint" style="opacity:.6">Versión de la app: 25-11 13:05</p>
+      <p class="hint" style="opacity:.6">Versión de la app: 25-11 13:10</p>
     </div>
   </section>
 
@@ -1410,7 +1410,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   ['e-in', 'e-out'].forEach(id => $(id).addEventListener('change', () => {
     const p = tarifaPara($('e-in').value);
     if (p != null) $('p-noche').value = String(p);
-    const tp = tasaPara($('e-in').value);
+    const tp = tasaPara($('e-in').value) ?? settings.tasa; // temporada, o el impuesto general si no hay
     if (tp != null) $('t-tarifa').value = String(tp);
   }));
   $('cal-filtro').onchange = renderCal;
