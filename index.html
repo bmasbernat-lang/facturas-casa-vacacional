@@ -247,6 +247,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   <section id="view-res" hidden>
     <div class="panel">
       <h2>Reservas</h2>
+      <div class="summary" id="res-agencias"></div>
       <div class="imp-box" id="imp-box">
         <div class="imp-top">
           <label class="btn primary" style="display:inline-flex;color:var(--panel)">📥 Importar reservas (CSV o Excel) <input type="file" id="imp-file" accept=".csv,.txt,.xlsx,.xls,text/csv" hidden></label>
@@ -378,6 +379,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         <button type="submit" class="btn primary" id="save">Guardar factura</button>
         <button type="button" class="btn" id="print">Imprimir / PDF</button>
         <button type="button" class="btn" id="pdf-again" hidden>Guardar PDF otra vez</button>
+        <button type="button" class="btn" id="mail-cliente" hidden>✉️ Enviar al cliente</button>
         <button type="button" class="btn" id="rect-btn" hidden>Hacer rectificativa</button>
         <button type="button" class="btn" id="reset">Nueva en blanco</button>
       </div>
@@ -403,7 +405,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
       <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
-      <p class="hint" style="opacity:.6">Versión de la app: 25-11 13:10</p>
+      <p class="hint" style="opacity:.6">Versión de la app: 25-11 15:20</p>
     </div>
   </section>
 
@@ -455,6 +457,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
           <select id="g-q"><option value="">Todos</option><option value="1">1T</option><option value="2">2T</option><option value="3">3T</option><option value="4">4T</option></select>
         </label>
       </div>
+      <div style="margin:8px 0"><button class="btn" type="button" id="g-csv">📄 Descargar gastos (CSV)</button></div>
       <div class="summary" id="g-summary"></div>
       <div class="table-wrap"><table class="hist">
         <thead><tr><th>Fecha</th><th>Proveedor</th><th>NIF</th><th>Concepto</th><th class="r">Base</th><th class="r">Tipo</th><th class="r">Cuota IVA</th><th class="r">Total</th><th></th></tr></thead>
@@ -766,6 +769,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     $('save').hidden = m === 'view';
     $('save').textContent = m === 'rect' ? 'Guardar rectificativa' : 'Guardar factura';
     $('pdf-again').hidden = m !== 'view';
+    $('mail-cliente').hidden = m !== 'view';
     $('rect-btn').hidden = m !== 'view' || !!inv.rect || !!inv.rectificadaPor;
     $('lock-info').hidden = m !== 'view';
     if (m === 'view') $('lock-info').textContent = inv.rectificadaPor
@@ -1002,6 +1006,13 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   const impDone = r => invoices.some(i => !i.rect && (i.reserva ? i.reserva === impKey(r) : normH(i.cliente.nombre) === normH(r.nombre) && i.entrada === r.entrada));
   function renderImp() {
     const box = $('imp-list'); if (!box) return;
+    // Resumen por agencia (sin las canceladas)
+    const agencias = {};
+    ((reservas && reservas.list) || []).filter(r => !r.cancelada).forEach(r => {
+      const o = origenDe(r), n = nights(r.entrada, r.salida), a = agencias[o] || (agencias[o] = { n: 0, noches: 0, total: 0 });
+      a.n++; a.noches += n; a.total += r.importe > 0 ? r.importe : (r.precioNoche > 0 ? r.precioNoche * n : 0);
+    });
+    $('res-agencias').innerHTML = Object.keys(agencias).sort((a, b) => a.localeCompare(b, 'es')).map(o => `<div><span>${esc(o)}</span><b>${agencias[o].n} reservas · ${agencias[o].noches} noches · ${eur(r2(agencias[o].total))}</b></div>`).join('');
     $('imp-clear').hidden = !reservas;
     if (!reservas) { box.innerHTML = ''; return; }
     const pend = reservas.list.filter(r => !impDone(r)).length;
@@ -1224,6 +1235,19 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     } else downloadBlob(pdfName(inv), blob);
     return dir;
   }
+  // Guarda el PDF en la carpeta y abre Gmail con el correo escrito al cliente (el PDF se adjunta arrastrándolo)
+  $('mail-cliente').onclick = async () => {
+    if (!viewing) return;
+    const to = (viewing.cliente.email || '').trim();
+    if (!to) { toast('Esta factura no tiene el email del cliente'); return; }
+    let donde = '';
+    try { const dir = await savePdf(viewing); donde = dir ? `la carpeta <b>${dir.name}</b>` : 'la carpeta <b>Descargas</b>'; } catch (err) { toast(pdfError(err)); return; }
+    const subject = `Factura ${fullNumber(viewing)}${settings.casa ? ' – ' + settings.casa : ''}`;
+    const body = `Hola ${viewing.cliente.nombre || ''},\n\nTe adjunto la factura ${fullNumber(viewing)} de tu estancia del ${fdate(viewing.entrada)} al ${fdate(viewing.salida)}.\n\nTotal: ${eur(viewing.calc.total)}\n\nGracias por tu reserva.\n\n${settings.nombre || ''}`;
+    const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, '_blank');
+    toast('Gmail abierto. Adjunta el PDF que está en ' + donde.replace(/<[^>]+>/g, ''));
+  };
   $('pdf-again').onclick = async () => {
     if (!viewing) return;
     try { const dir = await savePdf(viewing); toast(`PDF guardado${dir ? ` en «${dir.name}»` : ' en Descargas'}`); }
@@ -1479,6 +1503,16 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     $('g-year').value = $('g-fecha').value.slice(0, 4);
     renderGastos(); toast('Gasto añadido'); $('g-prov').focus();
   });
+  $('g-csv').onclick = () => {
+    const y = $('g-year').value, q = $('g-q').value;
+    const list = gastos.filter(g => g.fecha.startsWith(y) && (!q || quarter(g.fecha) === +q)).sort((a, b) => a.fecha.localeCompare(b.fecha));
+    if (!list.length) { toast('No hay gastos en ese periodo'); return; }
+    const f = n => r2(n).toFixed(2).replace('.', ',');
+    const head = ['Fecha', 'Proveedor', 'NIF proveedor', 'Concepto', 'Base imponible', 'Tipo IVA', 'Cuota IVA', 'Total'];
+    const rows = list.map(g => [fdate(g.fecha), g.prov, g.nif, g.conc, f(g.base), g.tipo + '%', f(g.cuota), f(g.base + g.cuota)]);
+    const csv = '\uFEFF' + [head, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    downloadBlob(`gastos-${y}${q ? '-' + q + 'T' : ''}.csv`, new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  };
   function renderGastos() {
     yearOptions($('g-year'), gastos.map(g => g.fecha));
     const y = $('g-year').value, q = $('g-q').value;
