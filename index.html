@@ -1772,7 +1772,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         const d = addDays(ws, i), enMes = d >= first && d <= ultimo, n = ocup[d] || 0;
         celdas += `<div class="cal-day${enMes ? '' : ' out'}${d === hoy ? ' hoy' : ''}${n > 1 ? ' ovr' : ''}" style="grid-column:${i + 1};grid-row:1"><b>${Number(d.slice(8))}</b></div>`;
       }
-      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${fondo(sg)}" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
+      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${fondo(sg)};text-align:center;justify-content:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
       html += `<div class="cal-week" style="grid-template-rows:auto${' 26px'.repeat(Math.max(1, finales.length))}">${celdas}${barras}</div>`;
     }
     $('cal-grid').innerHTML = html;
