@@ -116,6 +116,9 @@ input.num { font-family: var(--mono); text-align: right; }
 .cal-dow div { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 6px; text-align: center; background: var(--bg); border-bottom: 1px solid var(--line); }
 .cal-week { border-top: 1px solid var(--line); }
 .cal-week:first-of-type { border-top: 0; }
+.cal-meses { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; padding: 8px; }
+.cal-mes { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.cal-mes h3 { margin: 0; padding: 6px 8px; font-size: 14px; text-transform: capitalize; background: var(--panel); border-bottom: 1px solid var(--line); }
 .cal-day { min-height: 30px; padding: 4px 6px; font-size: 12px; border-right: 1px solid var(--line); }
 .cal-day:last-child { border-right: 0; }
 .cal-day b { font: 600 12px var(--mono); }
@@ -399,7 +402,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
       <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
-      <p class="hint" style="opacity:.6">Versión de la app: 25-11 12:10</p>
+      <p class="hint" style="opacity:.6">Versión de la app: 25-11 12:50</p>
     </div>
   </section>
 
@@ -1727,28 +1730,15 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   };
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
-  function renderCal() {
-    const y = calMes.getFullYear(), m = calMes.getMonth();
+  const MESES_VISTA = 4; // cuántos meses se ven a la vez
+  function mesHtml(y, m, lista, ocup) {
     const first = iso(new Date(y, m, 1)), ultimo = iso(new Date(y, m + 1, 0));
     const dias = new Date(y, m + 1, 0).getDate();
-    const lista = ((reservas && reservas.list) || []).filter(r => r.entrada && r.salida && r.salida > r.entrada);
-    // Noches ocupadas por día: la salida no cuenta como noche
-    const ocup = {};
-    lista.forEach(r => { for (let d = r.entrada; d < r.salida; d = addDays(d, 1)) ocup[d] = (ocup[d] || 0) + 1; });
     const offset = (new Date(y, m, 1).getDay() + 6) % 7; // semana empieza en lunes
     const inicio = addDays(first, -offset);
     const semanas = Math.ceil((offset + dias) / 7);
-    const noches = Object.keys(ocup).filter(d => d >= first && d <= ultimo);
-    const solapadas = noches.filter(d => ocup[d] > 1).length;
-    const llegadas = lista.filter(r => r.entrada >= first && r.entrada <= ultimo).length;
-    $('cal-title').textContent = calMes.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-    $('cal-summary').innerHTML = `<div><span>Llegadas</span><b>${llegadas}</b></div><div><span>Noches ocupadas</span><b>${noches.length} de ${dias}</b></div><div><span>Ocupación</span><b>${Math.round(noches.length / dias * 100)} %</b></div>`;
-    $('cal-warn').hidden = !solapadas;
-    $('cal-warn').textContent = solapadas ? `⚠️ ${solapadas} noche${solapadas === 1 ? '' : 's'} con reservas solapadas este mes. Revisa las reservas marcadas en rojo.` : '';
-    const fuentes = [...new Set(lista.map(origenDe))];
-    $('cal-legend').innerHTML = fuentes.map(f => `<span><i style="background:${colorDe(f)}"></i>${esc(f)}</span>`).join('');
     const hoy = today();
-    let html = '<div class="cal-dow">' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div>${d}</div>`).join('') + '</div>';
+    let html = `<div class="cal-mes"><h3>${new Date(y, m, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</h3>` + '<div class="cal-dow">' + ['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<div>${d}</div>`).join('') + '</div>';
     for (let w = 0; w < semanas; w++) {
       const ws = addDays(inicio, w * 7), we = addDays(ws, 7);
       const idx = d => Math.round((new Date(d + 'T12:00:00') - new Date(ws + 'T12:00:00')) / 864e5);
@@ -1776,7 +1766,30 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${fondo(sg)};text-align:center;justify-content:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
       html += `<div class="cal-week" style="grid-template-rows:auto${' 26px'.repeat(Math.max(1, finales.length))}">${celdas}${barras}</div>`;
     }
-    $('cal-grid').innerHTML = html;
+    return html + '</div>';
+  }
+  function renderCal() {
+    const lista = ((reservas && reservas.list) || []).filter(r => r.entrada && r.salida && r.salida > r.entrada);
+    // Noches ocupadas por día: la salida no cuenta como noche
+    const ocup = {};
+    lista.forEach(r => { for (let d = r.entrada; d < r.salida; d = addDays(d, 1)) ocup[d] = (ocup[d] || 0) + 1; });
+    const m0 = new Date(calMes.getFullYear(), calMes.getMonth(), 1);
+    const mFin = new Date(calMes.getFullYear(), calMes.getMonth() + MESES_VISTA, 0);
+    const ini = iso(m0), fin = iso(mFin);
+    const diasTot = Math.round((mFin - m0) / 864e5) + 1;
+    const noches = Object.keys(ocup).filter(d => d >= ini && d <= fin);
+    const solapadas = noches.filter(d => ocup[d] > 1).length;
+    const llegadas = lista.filter(r => r.entrada >= ini && r.entrada <= fin).length;
+    const fmt = d => d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    $('cal-title').textContent = `${fmt(m0)} – ${fmt(mFin)}`;
+    $('cal-summary').innerHTML = `<div><span>Llegadas</span><b>${llegadas}</b></div><div><span>Noches ocupadas</span><b>${noches.length} de ${diasTot}</b></div><div><span>Ocupación</span><b>${Math.round(noches.length / diasTot * 100)} %</b></div>`;
+    $('cal-warn').hidden = !solapadas;
+    $('cal-warn').textContent = solapadas ? `⚠️ ${solapadas} noche${solapadas === 1 ? '' : 's'} con reservas solapadas en estos meses. Revisa las reservas marcadas en rojo.` : '';
+    const fuentes = [...new Set(lista.map(origenDe))];
+    $('cal-legend').innerHTML = fuentes.map(f => `<span><i style="background:${colorDe(f)}"></i>${esc(f)}</span>`).join('');
+    let html = '';
+    for (let k = 0; k < MESES_VISTA; k++) html += mesHtml(calMes.getFullYear(), calMes.getMonth() + k, lista, ocup);
+    $('cal-grid').innerHTML = `<div class="cal-meses">${html}</div>`;
   }
   $('cal-prev').onclick = () => { calMes = new Date(calMes.getFullYear(), calMes.getMonth() - 1, 1); renderCal(); };
   $('cal-next').onclick = () => { calMes = new Date(calMes.getFullYear(), calMes.getMonth() + 1, 1); renderCal(); };
