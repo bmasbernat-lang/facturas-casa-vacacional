@@ -402,7 +402,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
       <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
-      <p class="hint" style="opacity:.6">Versión de la app: 25-11 12:50</p>
+      <p class="hint" style="opacity:.6">Versión de la app: 25-11 12:55</p>
     </div>
   </section>
 
@@ -1730,7 +1730,8 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   };
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const addDays = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.getDate() + n); return iso(d); };
-  const MESES_VISTA = 4; // cuántos meses se ven a la vez
+  const MESES_VISTA = 4; // meses a la vez en el ordenador
+  const mesesVisibles = () => (window.matchMedia('(max-width: 720px)').matches ? 1 : MESES_VISTA); // en el móvil, uno
   function mesHtml(y, m, lista, ocup) {
     const first = iso(new Date(y, m, 1)), ultimo = iso(new Date(y, m + 1, 0));
     const dias = new Date(y, m + 1, 0).getDate();
@@ -1774,7 +1775,8 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const ocup = {};
     lista.forEach(r => { for (let d = r.entrada; d < r.salida; d = addDays(d, 1)) ocup[d] = (ocup[d] || 0) + 1; });
     const m0 = new Date(calMes.getFullYear(), calMes.getMonth(), 1);
-    const mFin = new Date(calMes.getFullYear(), calMes.getMonth() + MESES_VISTA, 0);
+    const nMeses = mesesVisibles();
+    const mFin = new Date(calMes.getFullYear(), calMes.getMonth() + nMeses, 0);
     const ini = iso(m0), fin = iso(mFin);
     const diasTot = Math.round((mFin - m0) / 864e5) + 1;
     const noches = Object.keys(ocup).filter(d => d >= ini && d <= fin);
@@ -1788,9 +1790,10 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const fuentes = [...new Set(lista.map(origenDe))];
     $('cal-legend').innerHTML = fuentes.map(f => `<span><i style="background:${colorDe(f)}"></i>${esc(f)}</span>`).join('');
     let html = '';
-    for (let k = 0; k < MESES_VISTA; k++) html += mesHtml(calMes.getFullYear(), calMes.getMonth() + k, lista, ocup);
+    for (let k = 0; k < nMeses; k++) html += mesHtml(calMes.getFullYear(), calMes.getMonth() + k, lista, ocup);
     $('cal-grid').innerHTML = `<div class="cal-meses">${html}</div>`;
   }
+  window.addEventListener('resize', () => { if (!$('view-cal').hidden) renderCal(); });
   $('cal-prev').onclick = () => { calMes = new Date(calMes.getFullYear(), calMes.getMonth() - 1, 1); renderCal(); };
   $('cal-next').onclick = () => { calMes = new Date(calMes.getFullYear(), calMes.getMonth() + 1, 1); renderCal(); };
   $('cal-hoy').onclick = () => { const t = new Date(); calMes = new Date(t.getFullYear(), t.getMonth(), 1); renderCal(); };
