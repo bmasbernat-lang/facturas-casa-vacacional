@@ -406,7 +406,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
       <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
-      <p class="hint" style="opacity:.6">Versión de la app: 25-11 15:30</p>
+      <p class="hint" style="opacity:.6">Versión de la app: 25-11 15:40</p>
     </div>
   </section>
 
@@ -698,6 +698,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   const today = () => new Date().toISOString().slice(0, 10);
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const nights = (a, b) => { if (!a || !b) return 0; const n = Math.round((new Date(b) - new Date(a)) / 864e5); return n > 0 ? n : 0; };
+  const origenDe = r => r.canal || r.fuente || 'Sin origen';
   const toast = msg => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200); };
   const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; };
 
@@ -1791,7 +1792,6 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   let calMes = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), 1); })();
   // Colores fijos por agencia: Fora Vila Rental en verde, Villafy Marias en azul; otras agencias, otros tonos
   const CAL_COL = ['#b5651d', '#7a4f8a', '#5b7f3a', '#2f6aa3'];
-  const origenDe = r => r.canal || r.fuente || 'Sin origen';
   const colorDe = t => {
     const n = String(t || '').toLowerCase();
     if (n.includes('fora') || n.includes('vila rental')) return '#2e7d32';
