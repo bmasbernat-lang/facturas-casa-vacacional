@@ -1751,10 +1751,18 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     for (let w = 0; w < semanas; w++) {
       const ws = addDays(inicio, w * 7), we = addDays(ws, 7);
       const idx = d => Math.round((new Date(d + 'T12:00:00') - new Date(ws + 'T12:00:00')) / 864e5);
-      const segs = lista.filter(r => r.entrada < we && r.salida > ws).map(r => {
-        const a = r.entrada > ws ? r.entrada : ws, b = r.salida < we ? r.salida : we;
-        return { r, c1: idx(a) + 1, c2: idx(b) + 1, comienza: r.entrada >= ws };
+      // La barra llega hasta el día de salida: ese último día va a medias (la salida es a las 10 h)
+      const segs = lista.filter(r => r.entrada < we && r.salida >= ws).map(r => {
+        const a = r.entrada > ws ? r.entrada : ws;
+        const medio = r.salida < we;
+        return { r, c1: idx(a) + 1, c2: medio ? idx(r.salida) + 2 : 8, comienza: r.entrada >= ws, medio };
       }).sort((x, z) => x.c1 - z.c1 || z.c2 - x.c2);
+      const fondo = sg => {
+        const c = colorDe(origenDe(sg.r));
+        if (!sg.medio) return c;
+        const x = 50 / (sg.c2 - sg.c1); // medio día = 50 % de una columna
+        return `linear-gradient(to right, ${c} calc(100% - ${x}%), ${c}55 calc(100% - ${x}%))`;
+      };
       // Carriles: una reserva por carril, para que los solapamientos se vean
       const finales = [];
       segs.forEach(sg => { let L = finales.findIndex(f => f <= sg.c1); if (L < 0) { L = finales.length; finales.push(0); } finales[L] = sg.c2; sg.lane = L; });
@@ -1763,7 +1771,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         const d = addDays(ws, i), enMes = d >= first && d <= ultimo, n = ocup[d] || 0;
         celdas += `<div class="cal-day${enMes ? '' : ' out'}${d === hoy ? ' hoy' : ''}${n > 1 ? ' ovr' : ''}" style="grid-column:${i + 1};grid-row:1"><b>${Number(d.slice(8))}</b></div>`;
       }
-      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${colorDe(origenDe(sg.r))}" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
+      const barras = segs.map(sg => `<button type="button" class="cbar${impDone(sg.r) ? ' done' : ''}" style="grid-column:${sg.c1} / ${sg.c2};grid-row:${sg.lane + 2};background:${fondo(sg)}" data-k="${esc(impKey(sg.r))}" title="${esc(sg.r.nombre)} · ${fdate(sg.r.entrada)} → ${fdate(sg.r.salida)}">${sg.comienza ? esc(sg.r.nombre || '(sin nombre)') : ''}</button>`).join('');
       html += `<div class="cal-week" style="grid-template-rows:auto${' 26px'.repeat(Math.max(1, finales.length))}">${celdas}${barras}</div>`;
     }
     $('cal-grid').innerHTML = html;
