@@ -396,13 +396,14 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         <h2 id="cal-title"></h2>
         <button class="btn" id="cal-next" type="button" aria-label="Mes siguiente">›</button>
         <button class="btn" id="cal-hoy" type="button">Hoy</button>
+        <select id="cal-filtro" aria-label="Filtrar por agencia"><option value="">Todas las agencias</option></select>
       </div>
       <div class="summary" id="cal-summary"></div>
       <p class="warn" id="cal-warn" hidden></p>
       <div class="cal-legend" id="cal-legend"></div>
       <div class="cal-grid" id="cal-grid"></div>
       <p class="hint">Pulsa una reserva para abrir su factura ya rellenada. Las barras atenuadas ya tienen factura. Las reservas se acumulan con cada archivo que importes en «Reservas».</p>
-      <p class="hint" style="opacity:.6">Versión de la app: 25-11 12:55</p>
+      <p class="hint" style="opacity:.6">Versión de la app: 25-11 13:05</p>
     </div>
   </section>
 
@@ -410,6 +411,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   <section id="view-history" hidden>
     <div class="panel">
       <h2>Facturas emitidas</h2>
+      <p class="warn" id="copia-warn" hidden>⚠️ Hace más de un mes que no descargas una copia de seguridad. Ve a <b>Mis datos</b> y descarga una copia.</p>
       <div class="filters">
         <label>Año <select id="h-year"></select></label>
         <label>Trimestre
@@ -1006,11 +1008,13 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     $('imp-info').innerHTML = `<b>${esc(reservas.file)}</b>: ${reservas.list.length} reserva${reservas.list.length === 1 ? '' : 's'}, ${pend} sin facturar. Pulsa una para rellenar la factura.${reservas.faltan ? `<br>⚠️ No encuentro en el archivo: <b>${esc(reservas.faltan)}</b>. Tendrás que escribirlo a mano.` : ''}`;
     box.innerHTML = reservas.list.map((r, i) => {
       const done = impDone(r), imp = r.importe != null ? eur(r.importe) : r.precioNoche != null ? eur(r.precioNoche) + '/noche' : '';
-      return `<div class="imp-row" style="display:flex;gap:6px;align-items:stretch"><button type="button" class="imp-item${done ? ' done' : ''}" style="flex:1" data-i="${i}"><span><b>${esc(r.nombre || '(sin nombre)')}</b>${done ? '<span class="tag">Ya facturada</span>' : ''}</span>
-        <small>${fdate(r.entrada)} → ${fdate(r.salida)}${r.adultos != null ? ` · ${r.adultos} adulto${r.adultos === 1 ? '' : 's'}` : ''}${r.menores ? ` · ${r.menores} menor${r.menores === 1 ? '' : 'es'}` : ''}${imp ? ' · ' + imp : ''}${r.reserva ? ' · Reserva ' + esc(r.reserva) : ''}</small></button><span style="display:grid;gap:4px"><button type="button" class="btn" data-edit="${i}">✏️ Editar</button><button type="button" class="btn" data-del="${i}">🗑 Borrar</button></span></div>`;
+      return `<div class="imp-row" style="display:flex;gap:6px;align-items:stretch"><button type="button" class="imp-item${done ? ' done' : ''}" style="flex:1" data-i="${i}"><span><b>${esc(r.nombre || '(sin nombre)')}</b>${done ? '<span class="tag">Ya facturada</span>' : ''}${r.cancelada ? '<span class="tag">Cancelada</span>' : ''}</span>
+        <small>${fdate(r.entrada)} → ${fdate(r.salida)}${r.adultos != null ? ` · ${r.adultos} adulto${r.adultos === 1 ? '' : 's'}` : ''}${r.menores ? ` · ${r.menores} menor${r.menores === 1 ? '' : 'es'}` : ''}${imp ? ' · ' + imp : ''}${r.reserva ? ' · Reserva ' + esc(r.reserva) : ''}</small></button><span style="display:grid;gap:4px"><button type="button" class="btn" data-cancel="${i}">${r.cancelada ? '↩ Reactivar' : '✖ Cancelar'}</button><button type="button" class="btn" data-edit="${i}">✏️ Editar</button><button type="button" class="btn" data-del="${i}">🗑 Borrar</button></span></div>`;
     }).join('');
   }
   $('imp-list').addEventListener('click', e => {
+    const cn = e.target.closest('[data-cancel]');
+    if (cn) { const r = reservas.list[+cn.dataset.cancel]; r.cancelada = !r.cancelada; save(KEY_R, reservas); renderImp(); if (!$('view-cal').hidden) renderCal(); return; }
     const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]');
     if (ed) { editarReserva(reservas.list[+ed.dataset.edit]); return; }
     if (dl) { borrarReserva(reservas.list[+dl.dataset.del]); return; }
@@ -1020,6 +1024,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     show('new'); usarReserva(r);
   });
   function usarReserva(r) {
+    if (r.cancelada && !confirm('Esta reserva está cancelada. ¿Hacer la factura igualmente?')) return;
     const inv = blank(false), n = nights(r.entrada, r.salida);
     Object.assign(inv.cliente, { nombre: r.nombre, nif: r.nif, email: r.email, dir: r.dir });
     if (r.pais) inv.cliente.pais = r.pais;
@@ -1029,6 +1034,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     if (r.precioNoche > 0) inv.precioNoche = String(r.precioNoche);
     else if (r.importe > 0) inv.lines.push({ desc: `Alojamiento (${n || '?'} noche${n === 1 ? '' : 's'}, del ${fdate(r.entrada)} al ${fdate(r.salida)})`, importe: String(r2(r.importe)) });
     else { const t = tarifaPara(r.entrada); if (t != null) inv.precioNoche = String(t); }
+    { const tp = tasaPara(r.entrada); if (tp != null) inv.tasaTarifa = tp; }
     if (r.limpieza > 0) inv.lines.push({ desc: 'Limpieza final', importe: String(r.limpieza) });
     if (/airbnb|booking|vrbo|expedia|homeaway/i.test(r.canal)) inv.pago = 'Plataforma (Airbnb, Booking…)';
     if (r.reserva) inv.notas = `Reserva nº ${r.reserva}${r.canal ? ' (' + r.canal + ')' : ''}`;
@@ -1063,7 +1069,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     const faltan = Object.entries(etiquetas).filter(([k]) => map[k] === undefined && !(k === 'salida' && map.noches !== undefined) && !(k === 'importe' && map.precioNoche !== undefined)).map(([, v]) => v);
     if (map.adultos === undefined && map.huespedes === undefined) faltan.push('número de adultos');
     const acumuladas = new Map(((reservas && reservas.list) || []).map(x => [impKey(x), x]));
-    list.forEach(x => acumuladas.set(impKey(x), Object.assign({}, x, { fuente: file.name })));
+    list.forEach(x => acumuladas.set(impKey(x), Object.assign({}, x, { fuente: file.name }, acumuladas.get(impKey(x))?.cancelada ? { cancelada: true } : {})));
     reservas = { file: file.name, list: [...acumuladas.values()], faltan: faltan.join(', ') };
     save(KEY_R, reservas);
     renderImp(); toast(`${list.length} reserva${list.length === 1 ? '' : 's'} cargada${list.length === 1 ? '' : 's'}`);
@@ -1132,7 +1138,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       importe: isNaN(importe) ? null : importe, precioNoche: null, limpieza: null, modo: 'total', canal: v('canal'), fuente: 'Manual'
     };
     const acumuladas = new Map(((reservas && reservas.list) || []).map(r => [impKey(r), r]));
-    if (resEditKey) acumuladas.delete(resEditKey);
+    if (resEditKey) { if (acumuladas.get(resEditKey)?.cancelada) x.cancelada = true; acumuladas.delete(resEditKey); }
     resEditKey = null; $('res-submit').textContent = 'Guardar reserva';
     acumuladas.set(impKey(x), x);
     reservas = { file: (reservas && reservas.file) || 'Manual', list: [...acumuladas.values()], faltan: (reservas && reservas.faltan) || '' };
@@ -1270,6 +1276,8 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   // ---------- historial ----------
   function renderHistory() {
     yearOptions($('h-year'), invoices.map(i => i.fecha));
+    const diasSinCopia = settings.ultimaCopia ? Math.floor((new Date(today()) - new Date(settings.ultimaCopia)) / 864e5) : Infinity;
+    $('copia-warn').hidden = !(invoices.length && diasSinCopia > 30);
     const list = filtered();
     const sum = k => r2(list.reduce((s, i) => s + i.calc[k], 0));
     $('h-summary').innerHTML = `<div><span>Facturas</span><b>${list.length}</b></div><div><span>Base imponible</span><b>${eur(sum('base'))}</b></div><div><span>IVA repercutido</span><b>${eur(sum('cuota'))}</b></div><div><span>Imp. turístico</span><b>${eur(sum('tasa'))}</b></div><div><span>Total facturado</span><b>${eur(sum('total'))}</b></div>`;
@@ -1277,7 +1285,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
       <td style="font-family:var(--mono)">${esc(fullNumber(i))}${i.rect ? `<br><small style="color:var(--muted)">rectifica ${esc(i.rect.ref)}</small>` : ''}${i.rectificadaPor ? `<br><small style="color:var(--danger)">rectificada por ${esc(i.rectificadaPor)}</small>` : ''}</td><td>${fdate(i.fecha)}</td><td>${esc(i.cliente.nombre)}</td>
       <td>${fdate(i.entrada)} → ${fdate(i.salida)}</td>
       <td class="r">${eur(i.calc.base)}</td><td class="r">${eur(i.calc.cuota)}</td><td class="r">${eur(i.calc.tasa)}</td><td class="r"><b>${eur(i.calc.total)}</b></td>
-      <td class="acts"><button class="btn" data-a="open">Ver</button> ${!i.rect && !i.rectificadaPor ? '<button class="btn" data-a="rect">Rectificar</button> ' : ''}<button class="btn" data-a="copy">Duplicar</button>${canDelete(i) ? ' <button class="btn danger" data-a="del" title="Solo se puede borrar la última factura de la serie, para no dejar huecos en la numeración">Borrar</button>' : ''}</td></tr>`).join('')
+      <td class="acts"><button class="btn" data-a="cobro" title="Marca si el cliente ya ha pagado">${i.cobrada ? '✔ Cobrada' : 'Sin cobrar'}</button> <button class="btn" data-a="open">Ver</button> ${!i.rect && !i.rectificadaPor ? '<button class="btn" data-a="rect">Rectificar</button> ' : ''}<button class="btn" data-a="copy">Duplicar</button>${canDelete(i) ? ' <button class="btn danger" data-a="del" title="Solo se puede borrar la última factura de la serie, para no dejar huecos en la numeración">Borrar</button>' : ''}</td></tr>`).join('')
       : `<tr><td colspan="9" class="empty">No hay facturas en este periodo. Crea una en «Nueva factura» y pulsa Guardar.</td></tr>`;
   }
   // Solo se puede borrar la última de su serie y año (no deja huecos) y si nadie la ha rectificado
@@ -1291,6 +1299,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   $('h-body').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const id = b.closest('tr').dataset.id, inv = invoices.find(i => i.id === id);
+    if (b.dataset.a === 'cobro') { inv.cobrada = !inv.cobrada; save(KEY_I, invoices); renderHistory(); return; }
     if (b.dataset.a === 'open') { fillForm(structuredClone(inv), 'view'); show('new'); }
     if (b.dataset.a === 'rect') { fillForm(structuredClone(inv), 'view'); show('new'); $('rect-btn').click(); }
     if (b.dataset.a === 'copy') {
@@ -1380,15 +1389,16 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   const sMap = { nombre: 's-nombre', nif: 's-nif', tel: 's-tel', dir: 's-dir', email: 's-email', casa: 's-casa', casadir: 's-casadir', reg: 's-reg', serie: 's-serie', serieR: 's-serieR', tasa: 's-tasa', iban: 's-iban', pie: 's-pie' };
   const fillSettings = () => { Object.entries(sMap).forEach(([k, id]) => $(id).value = settings[k] ?? ''); showLogo(); renderTar(); };
   // ---------- precios por temporada ----------
+  const tasaPara = f => { if (!f) return null; const t = (settings.tarifas || []).find(x => x.desde && x.hasta && f >= x.desde && f <= x.hasta); return t && t.tasa > 0 ? t.tasa : null; };
   const tarifaPara = f => { if (!f) return null; const t = (settings.tarifas || []).find(x => x.desde && x.hasta && f >= x.desde && f <= x.hasta); return t ? t.precio : null; };
   function renderTar() {
     const list = settings.tarifas || [];
-    $('tar-list').innerHTML = list.map((t, i) => `<div class="row" data-i="${i}" style="align-items:end"><label>Desde <input type="date" data-k="desde" value="${t.desde || ''}"></label><label>Hasta <input type="date" data-k="hasta" value="${t.hasta || ''}"></label><label>€ por noche <input class="num" type="number" step="0.01" min="0" data-k="precio" value="${t.precio ?? ''}"></label><button type="button" class="btn" data-del-t="${i}">Quitar</button></div>`).join('') || '<p class="hint">Todavía no hay temporadas.</p>';
+    $('tar-list').innerHTML = list.map((t, i) => `<div class="row" data-i="${i}" style="align-items:end"><label>Desde <input type="date" data-k="desde" value="${t.desde || ''}"></label><label>Hasta <input type="date" data-k="hasta" value="${t.hasta || ''}"></label><label>€ por noche <input class="num" type="number" step="0.01" min="0" data-k="precio" value="${t.precio ?? ''}"></label><label>Impuesto €/pers./noche <input class="num" type="number" step="0.01" min="0" data-k="tasa" value="${t.tasa ?? ''}"></label><button type="button" class="btn" data-del-t="${i}">Quitar</button></div>`).join('') || '<p class="hint">Todavía no hay temporadas.</p>';
   }
   $('tar-list').addEventListener('change', e => {
     const row = e.target.closest('[data-i]'); if (!row || !e.target.dataset.k) return;
     const t = settings.tarifas[+row.dataset.i], k = e.target.dataset.k;
-    t[k] = k === 'precio' ? num(e.target.value) : e.target.value;
+    t[k] = (k === 'precio' || k === 'tasa') ? num(e.target.value) : e.target.value;
     save(KEY_S, settings);
   });
   $('tar-list').addEventListener('click', e => {
@@ -1400,7 +1410,10 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   ['e-in', 'e-out'].forEach(id => $(id).addEventListener('change', () => {
     const p = tarifaPara($('e-in').value);
     if (p != null) $('p-noche').value = String(p);
+    const tp = tasaPara($('e-in').value);
+    if (tp != null) $('t-tarifa').value = String(tp);
   }));
+  $('cal-filtro').onchange = renderCal;
   function showLogo() { $('l-prev').hidden = !settings.logo; $('l-none').hidden = !!settings.logo; if (settings.logo) $('l-prev').src = settings.logo; }
   // Reduce la imagen a 600 px como máximo para que quepa en el navegador y el PDF no pese
   $('l-file').onchange = e => {
@@ -1427,7 +1440,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     showCasa();
     render();
   });
-  $('b-export').onclick = () => download(`copia-facturas-${today()}.json`, JSON.stringify({ settings, invoices, gastos }, null, 2), 'application/json');
+  $('b-export').onclick = () => { download(`copia-facturas-${today()}.json`, JSON.stringify({ settings, invoices, gastos }, null, 2), 'application/json'); settings.ultimaCopia = today(); save(KEY_S, settings); renderHistory(); };
   $('b-import').onchange = async e => {
     const file = e.target.files[0]; if (!file) return;
     try {
@@ -1770,7 +1783,13 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
     return html + '</div>';
   }
   function renderCal() {
-    const lista = ((reservas && reservas.list) || []).filter(r => r.entrada && r.salida && r.salida > r.entrada);
+    let lista = ((reservas && reservas.list) || []).filter(r => r.entrada && r.salida && r.salida > r.entrada && !r.cancelada);
+    // Filtro por agencia
+    const fil = $('cal-filtro'), prevF = fil.value;
+    const origenes = [...new Set(((reservas && reservas.list) || []).map(origenDe))].sort((a, b) => a.localeCompare(b, 'es'));
+    fil.innerHTML = '<option value="">Todas las agencias</option>' + origenes.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    fil.value = origenes.includes(prevF) ? prevF : '';
+    if (fil.value) lista = lista.filter(r => origenDe(r) === fil.value);
     // Noches ocupadas por día: la salida no cuenta como noche
     const ocup = {};
     lista.forEach(r => { for (let d = r.entrada; d < r.salida; d = addDays(d, 1)) ocup[d] = (ocup[d] || 0) + 1; });
