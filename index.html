@@ -1757,11 +1757,12 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         const medio = r.salida < we;
         return { r, c1: idx(a) + 1, c2: medio ? idx(r.salida) + 2 : 8, comienza: r.entrada >= ws, medio };
       }).sort((x, z) => x.c1 - z.c1 || z.c2 - x.c2);
+      // Entrada a las 16 h y salida a las 10 h: el primer y el último día van a medias
       const fondo = sg => {
-        const c = colorDe(origenDe(sg.r));
-        if (!sg.medio) return c;
-        const x = 50 / (sg.c2 - sg.c1); // medio día = 50 % de una columna
-        return `linear-gradient(to right, ${c} calc(100% - ${x}%), ${c}55 calc(100% - ${x}%))`;
+        const c = colorDe(origenDe(sg.r)), t = `${c}55`, h = 50 / (sg.c2 - sg.c1);
+        const ini = sg.comienza ? `${t} ${h}%, ${c} ${h}%` : `${c} 0%`;
+        const fin = sg.medio ? `${c} calc(100% - ${h}%), ${t} calc(100% - ${h}%), ${t} 100%` : `${c} 100%`;
+        return `linear-gradient(to right, ${ini}, ${fin})`;
       };
       // Carriles: una reserva por carril, para que los solapamientos se vean
       const finales = [];
