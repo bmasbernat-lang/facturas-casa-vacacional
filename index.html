@@ -534,6 +534,12 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         <label>IBAN para transferencias (opcional) <input id="s-iban"></label>
         <label>Texto al pie <textarea id="s-pie" rows="2"></textarea></label>
       </fieldset>
+      <fieldset>
+        <legend>Precios por temporada</legend>
+        <p class="hint">Pon el precio por noche de cada época. Al elegir la fecha de entrada en una factura, el precio se rellena solo.</p>
+        <div id="tar-list"></div>
+        <div style="margin-top:8px"><button type="button" class="btn" id="tar-add">+ Añadir temporada</button></div>
+      </fieldset>
       <div class="actions">
         <button type="submit" class="btn primary">Guardar mis datos</button>
       </div>
@@ -1361,7 +1367,28 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
 
   // ---------- ajustes ----------
   const sMap = { nombre: 's-nombre', nif: 's-nif', tel: 's-tel', dir: 's-dir', email: 's-email', casa: 's-casa', casadir: 's-casadir', reg: 's-reg', serie: 's-serie', serieR: 's-serieR', tasa: 's-tasa', iban: 's-iban', pie: 's-pie' };
-  const fillSettings = () => { Object.entries(sMap).forEach(([k, id]) => $(id).value = settings[k] ?? ''); showLogo(); };
+  const fillSettings = () => { Object.entries(sMap).forEach(([k, id]) => $(id).value = settings[k] ?? ''); showLogo(); renderTar(); };
+  // ---------- precios por temporada ----------
+  const tarifaPara = f => { if (!f) return null; const t = (settings.tarifas || []).find(x => x.desde && x.hasta && f >= x.desde && f <= x.hasta); return t ? t.precio : null; };
+  function renderTar() {
+    const list = settings.tarifas || [];
+    $('tar-list').innerHTML = list.map((t, i) => `<div class="row" data-i="${i}" style="align-items:end"><label>Desde <input type="date" data-k="desde" value="${t.desde || ''}"></label><label>Hasta <input type="date" data-k="hasta" value="${t.hasta || ''}"></label><label>€ por noche <input class="num" type="number" step="0.01" min="0" data-k="precio" value="${t.precio ?? ''}"></label><button type="button" class="btn" data-del-t="${i}">Quitar</button></div>`).join('') || '<p class="hint">Todavía no hay temporadas.</p>';
+  }
+  $('tar-list').addEventListener('change', e => {
+    const row = e.target.closest('[data-i]'); if (!row || !e.target.dataset.k) return;
+    const t = settings.tarifas[+row.dataset.i], k = e.target.dataset.k;
+    t[k] = k === 'precio' ? num(e.target.value) : e.target.value;
+    save(KEY_S, settings);
+  });
+  $('tar-list').addEventListener('click', e => {
+    const b = e.target.closest('[data-del-t]'); if (!b) return;
+    settings.tarifas.splice(+b.dataset.delT, 1); save(KEY_S, settings); renderTar();
+  });
+  $('tar-add').onclick = () => { (settings.tarifas = settings.tarifas || []).push({ desde: '', hasta: '', precio: 0 }); renderTar(); };
+  $('e-in').addEventListener('change', () => {
+    const p = tarifaPara($('e-in').value);
+    if (p != null) $('p-noche').value = String(p);
+  });
   function showLogo() { $('l-prev').hidden = !settings.logo; $('l-none').hidden = !!settings.logo; if (settings.logo) $('l-prev').src = settings.logo; }
   // Reduce la imagen a 600 px como máximo para que quepa en el navegador y el PDF no pese
   $('l-file').onchange = e => {
