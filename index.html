@@ -691,6 +691,11 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   const toast = msg => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200); };
   const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; };
 
+  // Vuelve a poner el siguiente número libre en el formulario (tras borrar facturas de prueba, por ejemplo)
+  function refreshNumero() {
+    if (mode === 'view') return;
+    $('f-numero').value = nextNumber($('f-serie').value.trim(), ($('f-fecha').value || today()).slice(0, 4));
+  }
   function nextNumber(serie, year) {
     const used = invoices.filter(i => i.serie === serie && i.fecha.slice(0, 4) === String(year)).map(i => parseInt(i.numero, 10) || 0);
     return (used.length ? Math.max(...used) : 0) + 1;
@@ -1295,6 +1300,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
         invoices = invoices.filter(i => i.id !== id);
         if (inv.rect) { const o = invoices.find(i => i.id === inv.rect.id); if (o) delete o.rectificadaPor; }
         save(KEY_I, invoices); if (viewing && viewing.id === id) fillForm(blank(false));
+        refreshNumero();
         renderHistory(); backupToDir(); toast('Factura borrada');
       }
       else { b.dataset.confirm = '1'; b.textContent = '¿Seguro?'; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = 'Borrar'; } }, 3000); }
@@ -1682,6 +1688,7 @@ table.hist td.acts .btn { padding: 4px 9px; font-size: 12px; }
   function show(v) {
     ['res', 'new', 'history', 'cal', 'gastos', 'modelos', 'settings'].forEach(x => { $('view-' + x).hidden = x !== v; $('tab-' + x).setAttribute('aria-selected', x === v); });
     if (v === 'res') renderImp();
+    if (v === 'new') refreshNumero();
     if (v === 'history') renderHistory();
     if (v === 'cal') renderCal();
     if (v === 'gastos') { if (!$('g-fecha').value) $('g-fecha').value = today(); renderGastos(); }
